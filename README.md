@@ -1,7 +1,7 @@
 ﻿Covid R scripts: README
 ======
 This folder contains a collection of scripts for loading and analysing Covid Business Restriction Survey data.
-The master scripts are on CBAS in gitlab repository "Covid". Versions are in this folder so MHCLG and others can more easily access them.
+The initial commits are on CBAS in gitlab repository "Covid": this git repo now takes the roll of master repository. 
 I've not created R projects so to run one of the "end use" scripts you'll have to put all relevant precedents into your working directory or set up a project yourself
 I've listed some sets of files for different tasks below...
 
