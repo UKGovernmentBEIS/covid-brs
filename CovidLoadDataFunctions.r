@@ -223,7 +223,14 @@ udf_aggs = function(){
     text_vars=list(c('q7_1.0','q7_2.0','q7_3.0','q10_1.0_a','q10_1.0_b','q10_1.0_c','q11_1.0','q11_2.0','q11_3.0')),
     
     # e) names of new "impact" text variables [split from one field in original data]
-    impact_vars=list(c('q10_1.0_a','q10_1.0_b','q10_1.0_c'))
+    impact_vars=list(c('q10_1.0_a','q10_1.0_b','q10_1.0_c')),
+    
+    # f) fields holding business types [Takeaways etc]
+    # NB This doesn't include "other" where respondents can add business types and ranks against them
+    business_type=list(c('q25_1.0','q25_2.0','q25_3.0','q25_4.0','q25_5.0','q25_6.0','q25_7.0','q25_8.0',
+            'q25_9.0','q25_10.0','q25_11.0','q25_12.0','q25_13.0','q25_14.0','q25_15.0','q25_16.0','q25_17.0',
+            'q25_18.0','q25_19.0','q25_20.0','q25_21.0','q25_22.0','q25_23.0','q25_24.0','q25_25.0','q25_26.0',
+            'q25_29.0'))
   )
   
   return(aggs)
@@ -328,11 +335,52 @@ udf_agg_data = function(data){
     return(data)
 }
 
+# *** Separate ranks to fields *** ----
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+udf_split_ranks=function(data, txt=unlist(aggs$business_type)){
+  # Some questions ask for a rank 1-3 for each item. This rank is entered across the categories--
+  # will one enter a val [1-3] in 3 of the total no of cols and leave rest blank. If we want to 
+  # calc no. respondents ranking a particular thing "1", "2" and "3", have to create 3 sub-cols, one for each
+  # val for each main col. E.g. for q25_1.0 [takeaways], create col q25_1.1 to hold rank 1, q25_1.2 to hold rank 2
+  # q25_1.3 to hold rank 3
+  # The fields split in this way don't include "other"--respondents can list "other" businesses and give them ranks
+  
+  businesses=data %>% 
+    # find any columns which match those in the list of businesses
+    select(matches(txt)) %>% 
+    # add an Id column to make sure each row is uniquely identified. This just
+    # means it will pivot_wider correctly
+    mutate(id=row_number()) %>% 
+    pivot_longer(.,cols=-id)
+  
+  # create 3 variables, one for each rank
+  v1=businesses %>% 
+    # i.e. replace q25_1.0 w q25_1.1 etc. Set value to 1 if 1, NA otherwise
+    mutate(name=sub("\\.0$","\\.1",name),
+           value=ifelse(value==1,1,NA))
+  v2=businesses %>% 
+    # i.e. replace q25_1.0 w q25_1.2 etc. Set value to 1 if 2, NA otherwise
+    mutate(name=sub("\\.0$","\\.2",name),
+           value=ifelse(value==2,1,NA))
+  v3=businesses %>% 
+    # i.e. replace q25_1.0 w q25_1.3 etc. Set value to 1 if 3, NA otherwise
+    mutate(name=sub("\\.0$","\\.3",name),
+           value=ifelse(value==3,1,NA))
+  # add the derived flag variables into single DF
+  businesses=bind_rows(v1,v2,v3)
+  # pivot this using the ID col to ensure no entries get converted to lists
+  businesses=businesses %>% 
+    pivot_wider(id_cols=id,name)
+  # bind the new columns to the data DF
+  data=bind_cols(data,businesses)
+  
+  return(data)
+}
 # *** Separate concatenated text fields *** ----
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-udf_split_txt = function(data, txt){
+udf_split_txt = function(data, txt='q10_1.0'){
   # split out the composite comma-limited fields like "what would help enforcement most" out into sep. cols
-  txt='q10_1.0'
+  # default parameter [col] as above
   
   # select the focal column and turn it into a vector. Use unlist here as tidyverse returns a DF [=list]
   ncols=unlist(select(data,!!txt))
@@ -432,7 +480,11 @@ udf_agg_nos=function(data,group_cols='q24_'){
                      list(sum=~sum(.x, na.rm=TRUE),cnt=~sum(.x>0,
                                                             na.rm = TRUE))),
               q2__cnt=n()) %>%
-    ungroup()
+    ungroup() %>% 
+    # For q25, types of business causing worst breaches, respondents can put in a rank 1-3 against values
+    # it doesn't make sense to include sums of these 1-3 ranks for the weekly summary, but it does make sense to include the count
+    # count of [any] 1-3, though.
+    select(.,!(matches('q25.*sum')))
   
   return(pubDataByGrp)
 }
