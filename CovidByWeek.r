@@ -3,6 +3,16 @@
 #
 # Amalgamate data in DF "data", aggregating to survey weeks across England.
 
+# *** Optional:
+rm(list=ls()) # remove anything in memory
+
+# Constants ====
+# *********
+# Change this to something appropriate:
+setwd("C:/Users/fsymons/Downloads/Annexes/covid")
+
+group_cols='q24_' # this is the default anyway
+
 # Load all "external sharing" public datasets to concatenated DF.
 source('CovidLoadPublicData.r') # NB calls other scripts
 

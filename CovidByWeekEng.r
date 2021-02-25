@@ -10,7 +10,7 @@
 rm(list=ls()) # remove anything in memory
 
 # *** Change this to something appropriate:
-setwd("C:/Users/fsymons/Downloads/Annexes")
+setwd("C:/Users/fsymons/Downloads/Annexes/covid")
 
 # This isn't strictly necessary since it's the function default:
 group_cols='q24_'

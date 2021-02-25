@@ -12,7 +12,7 @@ rm(list=ls()) # remove anything in memory
 # Constants ====
 # *********
 # Change this to something appropriate:
-setwd("C:/Users/fsymons/Downloads/Annexes/covid") 
+setwd("C:/Users/fsymons/Downloads/Annexes/covid")
 # NB if not creating a separate R project, you'll need to put all the scripts [like the one below and its precedents] into the working 
 # directory
 resultsDir="C:/Users/fsymons/Downloads/Annexes/"

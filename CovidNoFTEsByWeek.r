@@ -7,7 +7,7 @@
 rm(list=ls()) # remove anything in memory [optional]
 
 # Change this to something appropriate
-setwd("C:/Users/fsymons/Downloads/Annexes")
+setwd("C:/Users/fsymons/Downloads/Annexes/covid")
 
 # Load all "external sharing" public datasets to concatenated DF.
 source('CovidLoadPublicData.r') # NB calls other scripts

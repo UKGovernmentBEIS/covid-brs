@@ -10,7 +10,7 @@
 rm(list=ls()) # remove anything in memory
 
 # *** Change this to something appropriate:
-setwd("C:/Users/fsymons/Downloads/Annexes")
+setwd("C:/Users/fsymons/Downloads/Annexes/covid")
 
 # Group by region [q1] and week [q24]:
 group_cols=c('q1_','q24_')

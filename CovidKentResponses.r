@@ -17,11 +17,9 @@
 rm(list=ls()) # remove anything in memory
 
 # Change this to something appropriate:
-setwd("C:/Users/fsymons/Downloads/Annexes") 
+setwd("C:/Users/fsymons/Downloads/Annexes/covid")
 # NB if not creating a separate R project, you'll need to put all the scripts [like the one below and its precedents] into the working 
 # directory
-
-source("CovidLoadPublicData.R") # Main loading code which concatenates all public data together. This calls other scripts...
 
 # Constants ====
 # *********
@@ -43,6 +41,13 @@ kent=c(
 
 # [Title] font style for XL
 st1 = createStyle(fontName = 'Arial',textDecoration = "Bold",fontColour = "black",fontSize = 14) # black, bold, larger
+
+source("CovidLoadPublicData.R") # Main loading code which concatenates all public data together. This calls other scripts...
+
+# result of above will be DF with all variables so far used in the survey. However, we may have added new ones to the README
+# ahead of a release of the associated "public" version of the dataset. So "cols$ID.in.dataset" may include items which aren't
+# in our DF. To avoid any problems this might cause, we find the intersection between that list and names(data) and use that:
+dataNames=intersect(as.vector(cols$ID.in.dataset),names(data))
 
 # Main processing inc. email address removal ====
 # ******************************************
@@ -79,7 +84,7 @@ kentData=kentText %>%
   left_join(., kentNos, by=c('q2_'='q2_' , 'q24_'='q24_')) %>% 
   # reorder things back to how they were [see above]. DF "cols" comes from the loading process: see
   # udf_survey_fields
-  select(., as.vector(cols$ID.in.dataset))
+  select(., all_of(dataNames))
 
 # Output to XL ====
 # ************

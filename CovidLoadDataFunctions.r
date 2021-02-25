@@ -167,7 +167,7 @@ udf_aggs = function(){
   
     # a) resource counts
     fte=list(c('q9_1.0','q9_2.0','q9_3.0','q9_4.0','q9_5.0','q9_6.0','q9_7.0','q9_9.0')),
-  
+ 
     # b) different types of action
     verbal=list(c('q12_1.0_a','q12_1.1_a','q12_1.2_a','q12_2.0_a','q12_3.0_a','q12_4.0_a',
              'q12_5.0_a','q12_6.0_a','q12_7.0_a','q12_8.0_a','q12_9.0_a','q12_10.0_a')),
@@ -179,6 +179,7 @@ udf_aggs = function(){
             'q12_5.0_d','q12_6.0_d','q12_7.0_d','q12_8.0_d','q12_9.0_d','q12_10.0_d')),
     prohibition=list(c('q12_1.0_e','q12_1.1_e','q12_1.2_e','q12_2.0_e','q12_3.0_e','q12_4.0_e',
                   'q12_5.0_e','q12_6.0_e','q12_7.0_e','q12_8.0_e','q12_9.0_e','q12_10.0_e')),
+  
     prosecution=list(c('q12_1.0_f','q12_1.1_f','q12_1.2_f','q12_2.0_f','q12_3.0_f','q12_4.0_f',
                   'q12_5.0_f','q12_6.0_f','q12_7.0_f','q12_8.0_f','q12_9.0_f','q12_10.0_f')),
     hsawa=list(c('q12_1.0_g','q12_1.1_g','q12_1.2_g','q12_2.0_g','q12_3.0_g','q12_4.0_g','q12_5.0_g',
@@ -232,7 +233,10 @@ udf_aggs = function(){
             'q25_18.0','q25_19.0','q25_20.0','q25_21.0','q25_22.0','q25_23.0','q25_24.0','q25_25.0','q25_26.0',
             'q25_29.0'))
   )
-  
+  # Put in all actions against any breach type
+  aggs$all_actions=c(unlist(aggs$closed_all),unlist(aggs$closed_law),unlist(aggs$closed_tier),unlist(aggs$home),
+                     unlist(aggs$la_order),unlist(aggs$no_protect),unlist(aggs$opening_hrs),unlist(aggs$other),
+                     unlist(aggs$other2),unlist(aggs$six),unlist(aggs$table),unlist(aggs$test_and_trace))
   return(aggs)
 }
 
@@ -246,7 +250,10 @@ udf_agg_data = function(data){
     # create col which is sum of all FTE of any type [q9_1-q9_9]
     # We use this to get counts later
     mutate(q9__._=rowSums(.[unlist(aggs$fte)], na.rm=TRUE),
-  
+           
+           # totals for any breach type, for any infraction action type
+           q12__._=rowSums(.[unlist(aggs$all_actions)], na.rm=TRUE),
+
            # NB need rowSums approach because there will be NAs.
            # a) By sanction type [aggs$across breach types]
            # verbal advice
@@ -328,6 +335,7 @@ udf_agg_data = function(data){
           # 'synthetic' option not present in early weeks [Coronavirus restriction notice]
           q12_1.0_j_comp=rowSums(.[,c("q12_1.1_j","q12_1.2_j")], na.rm=TRUE)
           )
+    
   data=data %>% 
     # any action against businesses which should be closed by law, consistent series
     mutate(q12_1.0___comp= rowSums(.[unlist(aggs$consistent_closed)], na.rm = TRUE))
