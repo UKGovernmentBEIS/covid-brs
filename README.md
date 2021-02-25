@@ -30,6 +30,10 @@ fernley Symons 23:46 21/01/2021
 
 *    CovidKentResponses.r<br>Extract of overall data for Kent respondents only. ***Check this carefully for disclosive info before making available ***
 
+*Create graphs of cumulative responses*
+
+*    StandardPresentationOutputs.r<br>Charts of cumulative total checks, total actions and total FTE from the start of the survey
+
 **Tasks:**
 
 ### 1) Extracting Kent data [subset of all data]
