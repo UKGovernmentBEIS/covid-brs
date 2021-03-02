@@ -39,10 +39,10 @@ kent=c(
   'Tonbridge and Malling'
   )
 
-# [Title] font style for XL
-st1 = createStyle(fontName = 'Arial',textDecoration = "Bold",fontColour = "black",fontSize = 14) # black, bold, larger
-
 source("CovidLoadPublicData.R") # Main loading code which concatenates all public data together. This calls other scripts...
+
+# [Title] font style for XL. This has to be here because the library needed is loaded in the source statement above
+st1 = createStyle(fontName = 'Arial',textDecoration = "Bold",fontColour = "black",fontSize = 14) # black, bold, larger
 
 # result of above will be DF with all variables so far used in the survey. However, we may have added new ones to the README
 # ahead of a release of the associated "public" version of the dataset. So "cols$ID.in.dataset" may include items which aren't
