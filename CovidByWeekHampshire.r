@@ -34,10 +34,11 @@ hamps=c(
   'Test Valley',
   'Winchester'
 )
-# [Title] font style for XL
-st1 = createStyle(fontName = 'Arial',textDecoration = "Bold",fontColour = "black",fontSize = 14) # black, bold, larger
 
 source("CovidLoadPublicData.R") # Main loading code which concatenates all public data together. This calls other scripts...
+
+# [Title] font style for XL; has to go here as library loaded in previous source() step
+st1 = createStyle(fontName = 'Arial',textDecoration = "Bold",fontColour = "black",fontSize = 14) # black, bold, larger
 
 # This function is in CovidLoadDataFunctions. If a file fails to load, the R console should "hang" until you dismiss it
 udf_waitifnot(is.list(data),"problem loading one or more files: are they open?")
