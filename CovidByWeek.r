@@ -6,10 +6,12 @@
 # *** Optional:
 rm(list=ls()) # remove anything in memory
 
-# Constants ====
-# *********
-# Change this to something appropriate:
-setwd("C:/Users/fsymons/Downloads/Annexes/covid")
+# ***Working directory*** ====
+# *************
+# Assumes we're using R Studio
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# Use the following if not:
+# setwd(getSrcDirectory()[1])
 
 group_cols='q24_' # this is the default anyway
 
@@ -17,10 +19,10 @@ group_cols='q24_' # this is the default anyway
 source('CovidLoadPublicData.r') # NB calls other scripts
 
 # This function is in CovidLoadDataFunctions. If a file fails to load, the R console should "hang" until you dismiss it
-udf_waitifnot(is.list(data),"problem loading one or more files: are they open?")
+#udf_waitifnot(is.list(data),"problem loading one or more files: are they open?")
 
 # *** Optional: run this with a separate input file [xlsx] which has a list of working files to add in:
-# source('CovidLoadWorkingData.r')
+#source('CovidLoadWorkingData.r')
 
 # perform "aggregation" calculations ahead of grouping at week level.
 # create the aggregations list of lists

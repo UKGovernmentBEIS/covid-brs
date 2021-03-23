@@ -9,13 +9,18 @@
 # *** Optional:
 rm(list=ls()) # remove anything in memory
 
+# ***Working directory*** ====
+# *************
+# Assumes we're using R Studio
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# Use the following if not:
+# setwd(getSrcDirectory()[1])
+
 # Constants ====
 # *********
-# Change this to something appropriate:
-setwd("C:/Users/fsymons/Downloads/Annexes/covid")
-# NB if not creating a separate R project, you'll need to put all the scripts [like the one below and its precedents] into the working 
 # directory
-resultsDir="C:/Users/fsymons/Downloads/Annexes/"
+# This sets it to the same directory as the scripts. Change if required
+resultsDir=paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/")
 
 # Names of Hampshire + IoWight respondents as they appear in the survey
 hamps=c(
@@ -71,7 +76,8 @@ group_cols='q24_'
 pubDataByWeek=udf_agg_nos(pubData,group_cols)
 
 # aggregate the text question responses. This calculates %s giving each answer type.
-textResps=udf_agg_text(pubData,group_cols)
+textResps=udf_agg_text(pubData,group_cols) %>% 
+  arrange(., name, q24_,value)
 
 # Output to XL ====
 # ************
@@ -82,7 +88,7 @@ time=Sys.time()
 #
 # Take the "Intro" sheet from the README file in the "external sharing directory" in its entirety.
 # Do this to ensure the information is always up to date. Load rather than read the file to preserve formatting
-wb=loadWorkbook(paste0(filesDir,"README_BusinessRestrictionsSurvey.xlsx"))
+wb=loadWorkbook(paste0(filesDir,readmeFile))
 # delete all except the "Intro" sheet [if there are any others: have to do like this: have to delete sheets one at a time]
 lapply(names(wb)[which(!(names(wb) %in% c('Intro')))],function(i){removeWorksheet(wb,i)})
 

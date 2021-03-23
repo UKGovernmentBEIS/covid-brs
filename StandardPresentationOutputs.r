@@ -20,8 +20,12 @@ rm(list=ls()) # remove anything in memory
 # Libraries
 library('plotly')
 
-# *** Change this to something appropriate:
-setwd("C:/Users/fsymons/Downloads/Annexes/covid")
+# ***Working directory*** ====
+# *************
+# Assumes we're using R Studio
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# Use the following if not:
+# setwd(getSrcDirectory()[1])
 
 # This isn't strictly necessary since it's the function default:
 group_cols='q24_'

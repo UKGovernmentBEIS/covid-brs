@@ -9,8 +9,12 @@
 # *** Optional:
 rm(list=ls()) # remove anything in memory
 
-# *** Change this to something appropriate:
-setwd("C:/Users/fsymons/Downloads/Annexes/covid")
+# ***Working directory*** ====
+# *************
+# Assumes we're using R Studio
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# Use the following if not:
+# setwd(getSrcDirectory()[1])
 
 # Group by region [q1] and week [q24]:
 group_cols=c('q1_','q24_')

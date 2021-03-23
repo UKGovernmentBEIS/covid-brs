@@ -8,26 +8,15 @@
 #
 # Fernley Symons 8/1/2020
 
-# *** libraries *** ====
+# ***Working directory*** ====
 # *************
-# check which libraries of [openxlsx,tidyverse] are not loaded from the current loaded list:
-# creates a char vector of missing libraries
-missingLibs=setdiff(c("openxlsx","tidyverse"), (.packages()))
-# now load them
-lapply(missingLibs,function(x){eval(parse(text=paste0('library("',x,'")')))})
+# Assumes we're using R Studio
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# Use the following if not:
+# setwd(getSrcDirectory()[1])
 
-# ***constants***
-# change this...
-# Base of the path to the working files you want to process. The actual files may be in subfolders off this
-#
-# This is the way to access a SharePoint directory. Note the direction of slashes
-# NB can be problems with this: can get "File does not exist" messages. This might be due access issues, perhaps someone else
-# has file open [seems to fail in this case]. Alternative approach is to map to onedrive. But this takes up space on your computer [AFAIK] as it duplicates 
-# contents of folder, and also seems to fail if file is open in XL.
-#stemDir="\\\\beisgov.sharepoint.com@SSL/DavWWWRoot/sites/beis2/169/Shared Documents/Analytical Team/COVID-19/Business Restrictions/"
-stemDir="C:/Users/fsymons/OneDrive - Department for Business Energy and Industrial Strategy/Business Restrictions/"
-filesDir=paste0(stemDir,"External Sharing/")
-#list.files(filesDir)
+source('CovidLibraries.r') # Load libraries if not already
+source('CovidConstants.r') # set constants like output directory
 
 # *** main processing *** ====
 # *******************
@@ -38,10 +27,8 @@ if(!(exists("udf_load_data") && is.function(udf_load_data))){
   source('CovidLoadDataFunctions.r')
 }
 
-# get survey fields lookup
-udf_survey_fields(filesDir, "README_BusinessRestrictionsSurvey.xlsx")
-# get the list of files to process [from the README]
-udf_public_data(filesDir, "README_BusinessRestrictionsSurvey.xlsx")
+udf_survey_fields(filesDir, readmeFile) # get survey fields lookup
+udf_public_data(filesDir, readmeFile) # get the list of files to process [from the README]
 
 # ***Loading/processing data**noCols=colnames(data)[(colnames(data) %in% noCols$"ID.in.dataset")]* ----
 # apply the udf load function to each XL in the list [surveyFiles DF]. Wrap the call in an anonymous function

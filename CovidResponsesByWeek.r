@@ -9,8 +9,12 @@
 # *** Optional
 rm(list=ls()) # remove anything in memory
 
-# *** Change this to something appropriate:
-setwd("C:/Users/fsymons/Downloads/Annexes/covid")
+# ***Working directory*** ====
+# *************
+# Assumes we're using R Studio
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# Use the following if not:
+# setwd(getSrcDirectory()[1])
 
 # Load all "external sharing" public datasets to concatenated DF.
 source('CovidLoadPublicData.r') # NB calls other scripts

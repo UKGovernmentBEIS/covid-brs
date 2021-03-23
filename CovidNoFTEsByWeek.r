@@ -6,8 +6,12 @@
 # *** Optional
 rm(list=ls()) # remove anything in memory [optional]
 
-# Change this to something appropriate
-setwd("C:/Users/fsymons/Downloads/Annexes/covid")
+# ***Working directory*** ====
+# *************
+# Assumes we're using R Studio
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# Use the following if not:
+# setwd(getSrcDirectory()[1])
 
 # Load all "external sharing" public datasets to concatenated DF.
 source('CovidLoadPublicData.r') # NB calls other scripts
@@ -27,11 +31,15 @@ st1 = createStyle(fontName = 'Arial',textDecoration = "Bold",fontColour = "black
 
 # *** Main code *** ====
 # *****************
+# perform "aggregation" calculations ahead of grouping at week level.
+# create the aggregations list of lists
+# [put the lists of filters into global env. so we have them in case we want to use them for other purposes]
+aggs=udf_aggs()
 # add in some summary counts for FTEs etc
 agg_data=data %>% udf_agg_data(.) 
 
 # get just the respondent name and the end date for those respondents recording no FTEs
-no_fte=filter(agg_data, q9_any==0) %>% 
+no_fte=filter(agg_data, q9__._==0) %>% 
   select(., q2_,q24_)
 
 # Now create a crosstab "presence-absence" table of respondent by survey date.

@@ -42,7 +42,7 @@ udf_survey_fields=function(filesDir,filename){
   # in this particular dataset, since we might only be processing the survey results for one/a few week[s] [see later]
   cols=surveyFields[c("ID.in.dataset","Response.type.[number/text]")]
   assign('cols',cols,envir=.GlobalEnv)
-  # View(noCols)
+  # View(cols)
 
   # now get any fields which are numeric and put into their own DF
   noCols=cols %>% filter(., `Response.type.[number/text]`=='n') %>% 
@@ -91,20 +91,20 @@ udf_public_data=function(filesDir,filename){
 # global operation later to have a general purpose function
 # returns a list with, for ea. file processed: filename, no. of q24_=NA removed, vector of fields
 # It separately assigns DF "data" [concatenated DF] to the global enviro.
-udf_load_data = function(filename){
-
+# debug code: filename=workingFiles;dir=resultsFilesDir
+udf_load_data = function(filename, dir=filesDir){ # default value = filesDir [from CovidConstants.r]
   # read the whole workbook, sheet "data" if it's one of the external sharing datasets
   if(grepl('^(BR)|(br)', filename)==TRUE){
-    inData=readWorkbook(paste0(filesDir,filename), sheet='data')
-    udf_waitifnot(is.list(inData),paste0("Can't read: ",filesDir,filename,": is it open?"))
+    inData=readWorkbook(paste0(dir,filename), sheet='data')
+    udf_waitifnot(is.list(inData),paste0("Can't read: ",dir,filename,": is it open?"))
 
     # remove the second row of XL [first row of DF] as this has the text which
     # goes with each question
       inData=inData[-1,]
   }else{
     # assume it's a working file, sheet "Input data"
-    inData=readWorkbook(paste0(filesDir,filename), sheet='Input data')
-    udf_waitifnot(is.list(inData),paste0("Can't read: ",filesDir,filename,": is it open?"))
+    inData=readWorkbook(paste0(dir,filename), sheet='Input data')
+    udf_waitifnot(is.list(inData),paste0("Can't read: ",dir,filename,": is it open?"))
     
     # assume that the first 2 rows below the headings are qualtrics ID and question text respectively.
     # Note that loading things this way will include lots of extraneous columns called "col<some no>".
@@ -165,50 +165,67 @@ udf_aggs = function(){
 
   aggs=list(   
   
-    # a) resource counts
-    fte=list(c('q9_1.0','q9_2.0','q9_3.0','q9_4.0','q9_5.0','q9_6.0','q9_7.0','q9_9.0')),
+    ### a) resource counts ----
+    fte=list(c('q9_1.0','q9_2.0','q9_3.0','q9_4.0','q9_5.0','q9_6.0','q9_7.0','q9_9.0','q9_10.0')),
  
-    # b) different types of action
+    ### b) different types of action ----
     verbal=list(c('q12_1.0_a','q12_1.1_a','q12_1.2_a','q12_2.0_a','q12_3.0_a','q12_4.0_a',
              'q12_5.0_a','q12_6.0_a','q12_7.0_a','q12_8.0_a','q12_9.0_a','q12_10.0_a')),
     letter=list(c('q12_1.0_b','q12_1.1_b','q12_1.2_b','q12_2.0_b','q12_3.0_b','q12_4.0_b',
              'q12_5.0_b','q12_6.0_b','q12_7.0_b','q12_8.0_b','q12_9.0_b','q12_10.0_b')),
+      # Direction Notice Issued
     direction=list(c('q12_1.0_c','q12_1.1_c','q12_1.2_c','q12_2.0_c','q12_3.0_c','q12_4.0_c',
                 'q12_5.0_c','q12_6.0_c','q12_7.0_c','q12_8.0_c','q12_9.0_c','q12_10.0_c')),
+      # fixed penalty
     fixed=list(c('q12_1.0_d','q12_1.1_d','q12_1.2_d','q12_2.0_d','q12_3.0_d','q12_4.0_d',
             'q12_5.0_d','q12_6.0_d','q12_7.0_d','q12_8.0_d','q12_9.0_d','q12_10.0_d')),
+      # (general) prohibition notice
     prohibition=list(c('q12_1.0_e','q12_1.1_e','q12_1.2_e','q12_2.0_e','q12_3.0_e','q12_4.0_e',
                   'q12_5.0_e','q12_6.0_e','q12_7.0_e','q12_8.0_e','q12_9.0_e','q12_10.0_e')),
-  
     prosecution=list(c('q12_1.0_f','q12_1.1_f','q12_1.2_f','q12_2.0_f','q12_3.0_f','q12_4.0_f',
                   'q12_5.0_f','q12_6.0_f','q12_7.0_f','q12_8.0_f','q12_9.0_f','q12_10.0_f')),
+      # HSAWA improvement notice. In early weeks, assumed = "Improvement Notice".
     hsawa=list(c('q12_1.0_g','q12_1.1_g','q12_1.2_g','q12_2.0_g','q12_3.0_g','q12_4.0_g','q12_5.0_g',
             'q12_6.0_g','q12_7.0_g','q12_8.0_g','q12_9.0_g','q12_10.0_g')),
+      # Coronavirus Improvement Notice
     coron_imp=list(c('q12_1.1_h','q12_1.2_h','q12_2.0_h','q12_4.0_h','q12_5.0_h','q12_6.0_h',
                 'q12_7.0_h','q12_8.0_h','q12_9.0_h','q12_10.0_h')),
+      # Coronavirus Immediate Restriction Notice
     coron_imm=list(c('q12_1.1_i','q12_1.2_i','q12_2.0_i','q12_4.0_i','q12_5.0_i','q12_6.0_i',
                 'q12_7.0_i','q12_8.0_i','q12_9.0_i','q12_10.0_i')),
+      # Coronavirus Restriction Notice
     coron_res=list(c('q12_1.1_j','q12_1.2_j','q12_2.0_j','q12_4.0_j','q12_5.0_j','q12_6.0_j',
                 'q12_7.0_j','q12_8.0_j','q12_9.0_j','q12_10.0_j')),
   
-    # c) breach types
+    ### c) breach types ----
     # i) Actual survey types
+      # Premises failing to close that are required to remain closed by law
     closed_law=list(c('q12_1.0_a','q12_1.0_b','q12_1.0_c','q12_1.0_d','q12_1.0_e','q12_1.0_f','q12_1.0_g')),
+      # Premises failing to close that are required to remain closed by law
     closed_all=list(c('q12_1.1_a','q12_1.1_b','q12_1.1_c','q12_1.1_d','q12_1.1_e','q12_1.1_f',
                  'q12_1.1_g','q12_1.1_h','q12_1.1_i','q12_1.1_j')),
+      # Premises failing to comply with tier specific business closure rules
     closed_tier=list(c('q12_1.2_a','q12_1.2_b','q12_1.2_c','q12_1.2_d','q12_1.2_e','q12_1.2_f','q12_1.2_g',
                   'q12_1.2_h','q12_1.2_i','q12_1.2_j')),
+      # Premises failing to take reasonable steps to ensure that workers who must be self-isolating are 
+      # not working from outside their home
     home=list(c('q12_2.0_a','q12_2.0_b','q12_2.0_c','q12_2.0_d','q12_2.0_e','q12_2.0_f','q12_2.0_g','q12_2.0_h',
            'q12_2.0_i','q12_2.0_j')),
+      # Premises failing to comply with a Local Authority direction
     la_order=list(c('q12_3.0_a','q12_3.0_b','q12_3.0_c','q12_3.0_d','q12_3.0_e','q12_3.0_f','q12_3.0_g')),
+      # Premises not collecting customer etc. information for NHS Test and Trace
     test_and_trace=list(c('q12_4.0_a','q12_4.0_b','q12_4.0_c','q12_4.0_d','q12_4.0_e','q12_4.0_f','q12_4.0_g',
                      'q12_4.0_h','q12_4.0_i','q12_4.0_j')),
+      # Breaches of COVID-Secure guidance in relation to legal duty of employers to protect staff and customers
     no_protect=list(c('q12_5.0_a','q12_5.0_b','q12_5.0_c','q12_5.0_d','q12_5.0_e','q12_5.0_f','q12_5.0_g',
                  'q12_5.0_h','q12_5.0_i','q12_5.0_j')),
+      # Premises failing to adhere to restrictions on opening hours and last order times
     opening_hrs=list(c('q12_8.0_a','q12_8.0_b','q12_8.0_c','q12_8.0_d','q12_8.0_e','q12_8.0_f','q12_8.0_g',
                   'q12_8.0_h','q12_8.0_i','q12_8.0_j')),
+      # Premises failing to comply with requirement to provide table service only
     table=list(c('q12_9.0_a','q12_9.0_b','q12_9.0_c','q12_9.0_d','q12_9.0_e','q12_9.0_f','q12_9.0_g',
             'q12_9.0_h','q12_9.0_i','q12_9.0_j')),
+      # Premises failing to take reasonable steps to prevent bookings of over 6
     six=list(c('q12_10.0_a','q12_10.0_b','q12_10.0_c','q12_10.0_d','q12_10.0_e','q12_10.0_f','q12_10.0_g',
           'q12_10.0_h','q12_10.0_i','q12_10.0_j')),
     other=list(c('q12_6.0_a','q12_6.0_b','q12_6.0_c','q12_6.0_d','q12_6.0_e','q12_6.0_f','q12_6.0_g',
@@ -216,24 +233,29 @@ udf_aggs = function(){
     other2=list(c('q12_7.0_a','q12_7.0_b','q12_7.0_c','q12_7.0_d','q12_7.0_e','q12_7.0_f','q12_7.0_g',
              'q12_7.0_h','q12_7.0_i','q12_7.0_j')),
     
-    # ii) consistent closed by law series
+    # ii) consistent closed by law series. Construct series which are broadly comparable with early weeks q12_1.0_a,b etc
+    # In later weeks this is broadly same as q12_1.1_a + q12_1.2_a. We give a different variable name here to avoid confusion
     consistent_closed=list(c('q12_1.0_a_comp','q12_1.0_b_comp','q12_1.0_c_comp','q12_1.0_d_comp',
                         'q12_1.0_e_comp','q12_1.0_f_comp','q12_1.0_g_comp','q12_1.0_h_comp','q12_1.0_i_comp','q12_1.0_j_comp')),
     
-    # d) text variables [things we want counts/%s for]
-    text_vars=list(c('q7_1.0','q7_2.0','q7_3.0','q10_1.0_a','q10_1.0_b','q10_1.0_c','q11_1.0','q11_2.0','q11_3.0')),
+    ### d) text variables [things we want counts/%s for] ----
+    text_vars=list(c('q7_1.0','q7_2.0','q7_3.0','q10_1.0_a','q10_1.0_b','q10_1.0_c','q11_1.0','q11_2.0','q11_3.0','q26_')),
     
-    # e) names of new "impact" text variables [split from one field in original data]
+    ### e) names of new "impact" text variables [split from one field in original data] ----
     impact_vars=list(c('q10_1.0_a','q10_1.0_b','q10_1.0_c')),
     
-    # f) fields holding business types [Takeaways etc]
+    ### f) fields holding business types [Takeaways etc] ----
     # NB This doesn't include "other" where respondents can add business types and ranks against them
     business_type=list(c('q25_1.0','q25_2.0','q25_3.0','q25_4.0','q25_5.0','q25_6.0','q25_7.0','q25_8.0',
             'q25_9.0','q25_10.0','q25_11.0','q25_12.0','q25_13.0','q25_14.0','q25_15.0','q25_16.0','q25_17.0',
             'q25_18.0','q25_19.0','q25_20.0','q25_21.0','q25_22.0','q25_23.0','q25_24.0','q25_25.0','q25_26.0',
-            'q25_29.0'))
+            'q25_29.0')),
+    ### g) What would increase your preparedness for non-essential retail reopening? ----
+    # NB This doesn't include "other" where respondents can add business types and ranks against them
+    # It does include "don't know"
+    preparedness=list(c('Q70_1','Q70_2','Q70_3','Q70_4','Q70_5','Q70_6','Q70_7','Q70_8','Q70_10'))
   )
-  # Put in all actions against any breach type
+  ### h) Put in all actions against any breach type ----
   aggs$all_actions=c(unlist(aggs$closed_all),unlist(aggs$closed_law),unlist(aggs$closed_tier),unlist(aggs$home),
                      unlist(aggs$la_order),unlist(aggs$no_protect),unlist(aggs$opening_hrs),unlist(aggs$other),
                      unlist(aggs$other2),unlist(aggs$six),unlist(aggs$table),unlist(aggs$test_and_trace))
@@ -245,100 +267,137 @@ udf_aggs = function(){
 # This function performs optional aggregation-type manipulations on an input DF
 # Designed to be called after individ. weeks' datasets assembled into concatenated DF. Won't be needed for all scripts
 udf_agg_data = function(data){
-
+x=data
+  # NB in the following, we have to take account of the fact that some weeks don't have certain columns. Mostly
+  # this isn't a problem because we put all the data from all weeks into a "pot"——so it's likely that the column
+  # will be present in at least one week and hence in the overall dataset. Just in case that's not true,
+  # we work with the intersection of the col names and the list of things we want to add up instead. This should
+  # mean that we only work with those cols which are actually present and we don't throw an error for those which aren't
   data=data %>%
     # create col which is sum of all FTE of any type [q9_1-q9_9]
     # We use this to get counts later
-    mutate(q9__._=rowSums(.[unlist(aggs$fte)], na.rm=TRUE),
+    mutate(q9__._=rowSums(.[intersect(names(data),unlist(aggs$fte))], na.rm=TRUE),
            
-           # totals for any breach type, for any infraction action type
-           q12__._=rowSums(.[unlist(aggs$all_actions)], na.rm=TRUE),
-
-           # NB need rowSums approach because there will be NAs.
-           # a) By sanction type [aggs$across breach types]
-           # verbal advice
-           q12__.__a=rowSums(.[unlist(aggs$verbal)],na.rm=TRUE),
-           # letter/email
-           q12__.__b=rowSums(.[unlist(aggs$letter)],na.rm=TRUE),
-           # direction notice
-           q12__.__c=rowSums(.[unlist(aggs$direction)],na.rm=TRUE),
-           # fixed penalty
-           q12__.__d=rowSums(.[unlist(aggs$fixed)],na.rm=TRUE),
-           # prohibition notice
-           q12__.__e=rowSums(.[unlist(aggs$prohibition)],na.rm=TRUE),
-           # prosecutions
-           q12__.__f=rowSums(.[unlist(aggs$prosecution)],na.rm=TRUE),
-           # hsawa improvement notice
-           q12__.__g=rowSums(.[unlist(aggs$hsawa)],na.rm=TRUE),
-           # coronavirus improvement notice
-           q12__.__h=rowSums(.[unlist(aggs$coron_imp)],na.rm=TRUE),
-           # coronavirus immediate restriction
-           q12__.__i=rowSums(.[unlist(aggs$coron_imm)],na.rm=TRUE),
-           # coronavirus restriction
-           q12__.__j=rowSums(.[unlist(aggs$coron_res)],na.rm=TRUE),
+       # totals for any breach type, for any infraction action type
+       q12__._=rowSums(.[intersect(names(data),unlist(aggs$all_actions))], na.rm=TRUE),
+       
+       # NB need rowSums approach because there will be NAs.
+       # a) By sanction type [aggs$across breach types]
+       # verbal advice
+       q12__.__a=rowSums(.[intersect(names(data),unlist(aggs$verbal))],na.rm=TRUE),
+       # letter/email
+       q12__.__b=rowSums(.[intersect(names(data),unlist(aggs$letter))],na.rm=TRUE),
+       # direction notice
+       q12__.__c=rowSums(.[intersect(names(data),unlist(aggs$direction))],na.rm=TRUE),
+       # fixed penalty
+       q12__.__d=rowSums(.[intersect(names(data),unlist(aggs$fixed))],na.rm=TRUE),
+       # prohibition notice
+       q12__.__e=rowSums(.[intersect(names(data),unlist(aggs$prohibition))],na.rm=TRUE),
+       # prosecutions
+       q12__.__f=rowSums(.[intersect(names(data),unlist(aggs$prosecution))],na.rm=TRUE),
+       # hsawa improvement notice
+       q12__.__g=rowSums(.[intersect(names(data),unlist(aggs$hsawa))],na.rm=TRUE),
+       # coronavirus improvement notice
+       q12__.__h=rowSums(.[intersect(names(data),unlist(aggs$coron_imp))],na.rm=TRUE),
+       # coronavirus immediate restriction
+       q12__.__i=rowSums(.[intersect(names(data),unlist(aggs$coron_imm))],na.rm=TRUE),
+       # coronavirus restriction
+       q12__.__j=rowSums(.[intersect(names(data),unlist(aggs$coron_res))],na.rm=TRUE),
+       
+       # The following are for items which were split into several categories so
+       # the o/a totals aren't on the later datasets and we have to create them.
+       # [aggs$Totals created this way may not be 100% compatible with the definitions used in earlier
+       # surveys but they're close]. Do this transformation in this function [udf_agg_data] so can be
+       # fairly sure all the cols/fields mentioned are present. Otherwise have to do extensive testing
+       
+       # b) Summaries for breach types
+       # i) Totals for all actions in a breach type
+       # Now we calculate higher level totals for things which have sub-categories [broad compliance issues]
+       # closed by law
+       q12_1.0_=rowSums(.[intersect(names(data),unlist(aggs$closed_law))], na.rm = TRUE),
+       # remain closed, all tiers
+       q12_1.1_=rowSums(.[intersect(names(data),unlist(aggs$closed_all))], na.rm = TRUE),
+       # remain closed, tier specific
+       q12_1.2_=rowSums(.[intersect(names(data),unlist(aggs$closed_tier))], na.rm = TRUE),
+       # stay at home if isolating
+       q12_2.0_=rowSums(.[intersect(names(data),unlist(aggs$home))], na.rm = TRUE),
+       # not do what LA says [earlier weeks]
+       q12_3.0_=rowSums(.[intersect(names(data),unlist(aggs$la_order))], na.rm = TRUE),
+       # no test and trace
+       q12_4.0_=rowSums(.[intersect(names(data),unlist(aggs$test_and_trace))], na.rm = TRUE),
+       # not protect workers, customers
+       q12_5.0_=rowSums(.[intersect(names(data),unlist(aggs$no_protect))], na.rm = TRUE),
+       # other
+       q12_6.0_=rowSums(.[intersect(names(data),unlist(aggs$other))], na.rm = TRUE),
+       # other 2
+       q12_7.0_=rowSums(.[intersect(names(data),unlist(aggs$other2))], na.rm = TRUE),
+       # opening hours
+       q12_8.0_=rowSums(.[intersect(names(data),unlist(aggs$opening_hrs))], na.rm = TRUE),
+       # table service only
+       q12_9.0_= rowSums(.[intersect(names(data),unlist(aggs$table))], na.rm = TRUE),
+       # bookings over 6
+       q12_10.0_= rowSums(.[intersect(names(data),unlist(aggs$six))], na.rm = TRUE),
+       # check if some variables are present. If they aren't create them [=NA]
+       # (They might be missing if not working with all weeks' data.)
+       q12_1.0_a=ifelse(!('q12_1.0_a' %in% names(data)),NA,q12_1.0_a),
+       q12_1.0_b=ifelse(!('q12_1.0_b' %in% names(data)),NA,q12_1.0_b),
+       q12_1.0_c=ifelse(!('q12_1.0_c' %in% names(data)),NA,q12_1.0_c),
+       q12_1.0_d=ifelse(!('q12_1.0_d' %in% names(data)),NA,q12_1.0_d),
+       q12_1.0_e=ifelse(!('q12_1.0_e' %in% names(data)),NA,q12_1.0_e),
+       q12_1.0_f=ifelse(!('q12_1.0_f' %in% names(data)),NA,q12_1.0_f),
+       q12_1.0_g=ifelse(!('q12_1.0_g' %in% names(data)),NA,q12_1.0_g),
+       q12_1.1_a=ifelse(!('q12_1.1_a' %in% names(data)),NA,q12_1.1_a),
+       q12_1.1_b=ifelse(!('q12_1.1_b' %in% names(data)),NA,q12_1.1_b),
+       q12_1.1_c=ifelse(!('q12_1.1_c' %in% names(data)),NA,q12_1.1_c),
+       q12_1.1_d=ifelse(!('q12_1.1_d' %in% names(data)),NA,q12_1.1_d),
+       q12_1.1_e=ifelse(!('q12_1.1_e' %in% names(data)),NA,q12_1.1_e),
+       q12_1.1_f=ifelse(!('q12_1.1_f' %in% names(data)),NA,q12_1.1_f),
+       q12_1.1_g=ifelse(!('q12_1.1_g' %in% names(data)),NA,q12_1.1_g),
+       q12_1.1_h=ifelse(!('q12_1.1_h' %in% names(data)),NA,q12_1.1_h),
+       q12_1.1_i=ifelse(!('q12_1.1_i' %in% names(data)),NA,q12_1.1_i),
+       q12_1.1_j=ifelse(!('q12_1.1_j' %in% names(data)),NA,q12_1.1_j),
+       q12_1.2_a=ifelse(!('q12_1.2_a' %in% names(data)),NA,q12_1.2_a),
+       q12_1.2_b=ifelse(!('q12_1.2_b' %in% names(data)),NA,q12_1.2_b),
+       q12_1.2_c=ifelse(!('q12_1.2_c' %in% names(data)),NA,q12_1.2_c),
+       q12_1.2_d=ifelse(!('q12_1.2_d' %in% names(data)),NA,q12_1.2_d),
+       q12_1.2_e=ifelse(!('q12_1.2_e' %in% names(data)),NA,q12_1.2_e),
+       q12_1.2_f=ifelse(!('q12_1.2_f' %in% names(data)),NA,q12_1.2_f),
+       q12_1.2_g=ifelse(!('q12_1.2_g' %in% names(data)),NA,q12_1.2_g),
+       q12_1.2_h=ifelse(!('q12_1.2_h' %in% names(data)),NA,q12_1.2_h),
+       q12_1.2_i=ifelse(!('q12_1.2_i' %in% names(data)),NA,q12_1.2_i),
+       q12_1.2_j=ifelse(!('q12_1.2_j' %in% names(data)),NA,q12_1.2_j),
+    )  
+           
+   # ii) Closed by law consistent series
+   # NB in q12...a-g, reconstruct figs from later weeks which are consistent with earlier by adding together later
+   # weeks' sub categories. [in later weeks this was divided into "national" and "tier-specific" closures]
+   # verbal advice
+    data=data %>%
+      mutate(
+        q12_1.0_a_comp=ifelse(is.na(q12_1.0_a) | q12_1.0_a==0,rowSums(.[,c("q12_1.1_a","q12_1.2_a")], na.rm=TRUE),q12_1.0_a),
+        # letter
+        q12_1.0_b_comp=ifelse(is.na(q12_1.0_b) | q12_1.0_b==0,rowSums(.[,c("q12_1.1_b","q12_1.2_b")], na.rm=TRUE),q12_1.0_b),
+        # direction notice
+        q12_1.0_c_comp=ifelse(is.na(q12_1.0_c) | q12_1.0_c==0,rowSums(.[,c("q12_1.1_c","q12_1.2_c")], na.rm=TRUE),q12_1.0_c),
+        # fixed penalty
+        q12_1.0_d_comp=ifelse(is.na(q12_1.0_d) | q12_1.0_d==0,rowSums(.[,c("q12_1.1_d","q12_1.2_d")], na.rm=TRUE),q12_1.0_d),
+        # prohibition notice
+        q12_1.0_e_comp=ifelse(is.na(q12_1.0_e) | q12_1.0_e==0,rowSums(.[,c("q12_1.1_e","q12_1.2_e")], na.rm=TRUE),q12_1.0_e),
+        # prosecutions
+        q12_1.0_f_comp=ifelse(is.na(q12_1.0_f) | q12_1.0_f==0,rowSums(.[,c("q12_1.1_f","q12_1.2_f")], na.rm=TRUE),q12_1.0_f),
+        # improvement notice
+        q12_1.0_g_comp=ifelse(is.na(q12_1.0_g) | q12_1.0_g==0,rowSums(.[,c("q12_1.1_g","q12_1.2_g")], na.rm=TRUE),q12_1.0_g),
+        # 'synthetic' option not present in early weeks [Coronavirus improvement notice]
+        q12_1.0_h_comp=rowSums(.[,c("q12_1.1_h","q12_1.2_h")], na.rm=TRUE),
+        # 'synthetic' option not present in early weeks [Coronavirus immediate restriction notice]
+        q12_1.0_i_comp=rowSums(.[,c("q12_1.1_i","q12_1.2_i")], na.rm=TRUE),
+        # 'synthetic' option not present in early weeks [Coronavirus restriction notice]
+        q12_1.0_j_comp=rowSums(.[,c("q12_1.1_j","q12_1.2_j")], na.rm=TRUE)
+      )  
   
-           # The following are for items which were split into several categories so
-           # the o/a totals aren't on the later datasets and we have to create them.
-           # [aggs$Totals created this way may not be 100% compatible with the definitions used in earlier
-           # surveys but they're close]. Do this transformation in this function [udf_agg_data] so can be
-           # fairly sure all the cols/fields mentioned are present. Otherwise have to do extensive testing
-  
-           # b) Summaries for breach types
-           # i) Totals for all actions in a breach type
-           # Now we calculate higher level totals for things which have sub-categories [broad compliance issues]
-           # closed by law
-           q12_1.0_=rowSums(.[unlist(aggs$closed_law)], na.rm = TRUE),
-           # remain closed, all tiers
-           q12_1.1_=rowSums(.[unlist(aggs$closed_all)], na.rm = TRUE),
-           # remain closed, tier specific
-           q12_1.2_=rowSums(.[unlist(aggs$closed_tier)], na.rm = TRUE),
-           # stay at home if isolating
-           q12_2.0_=rowSums(.[unlist(aggs$home)], na.rm = TRUE),
-           # not do what LA says [earlier weeks]
-           q12_3.0_=rowSums(.[unlist(aggs$la_order)], na.rm = TRUE),
-           # no test and trace
-           q12_4.0_=rowSums(.[unlist(aggs$test_and_trace)], na.rm = TRUE),
-           # not protect workers, customers
-           q12_5.0_=rowSums(.[unlist(aggs$no_protect)], na.rm = TRUE),
-           # other
-           q12_6.0_=rowSums(.[unlist(aggs$other)], na.rm = TRUE),
-           # other 2
-           q12_7.0_=rowSums(.[unlist(aggs$other2)], na.rm = TRUE),
-           # opening hours
-           q12_8.0_=rowSums(.[unlist(aggs$opening_hrs)], na.rm = TRUE),
-           # table service only
-           q12_9.0_= rowSums(.[unlist(aggs$table)], na.rm = TRUE),
-           # bookings over 6
-           q12_10.0_= rowSums(.[unlist(aggs$six)], na.rm = TRUE),
-
-          # ii) Closed by law consistent series
-          # NB in q12...a-g, reconstruct figs from later weeks which are consistent with earlier by adding together later
-          # weeks' sub categories. [in later weeks this was divided into "national" and "tier-specific" closures]
-          # verbal advice
-          q12_1.0_a_comp=ifelse(is.na(q12_1.0_a) | q12_1.0_a==0,rowSums(.[,c("q12_1.1_a","q12_1.2_a")], na.rm=TRUE),q12_1.0_a),
-          # letter
-          q12_1.0_b_comp=ifelse(is.na(q12_1.0_b) | q12_1.0_b==0,rowSums(.[,c("q12_1.1_b","q12_1.2_b")], na.rm=TRUE),q12_1.0_b),
-          # direction notice
-          q12_1.0_c_comp=ifelse(is.na(q12_1.0_c) | q12_1.0_c==0,rowSums(.[,c("q12_1.1_c","q12_1.2_c")], na.rm=TRUE),q12_1.0_c),
-          # fixed penalty
-          q12_1.0_d_comp=ifelse(is.na(q12_1.0_d) | q12_1.0_d==0,rowSums(.[,c("q12_1.1_d","q12_1.2_d")], na.rm=TRUE),q12_1.0_d),
-          # prohibition notice
-          q12_1.0_e_comp=ifelse(is.na(q12_1.0_e) | q12_1.0_e==0,rowSums(.[,c("q12_1.1_e","q12_1.2_e")], na.rm=TRUE),q12_1.0_e),
-          # prosecutions
-          q12_1.0_f_comp=ifelse(is.na(q12_1.0_f) | q12_1.0_f==0,rowSums(.[,c("q12_1.1_f","q12_1.2_f")], na.rm=TRUE),q12_1.0_f),
-          # improvement notice
-          q12_1.0_g_comp=ifelse(is.na(q12_1.0_g) | q12_1.0_g==0,rowSums(.[,c("q12_1.1_g","q12_1.2_g")], na.rm=TRUE),q12_1.0_g),
-          # 'synthetic' option not present in early weeks [Coronavirus improvement notice]
-          q12_1.0_h_comp=rowSums(.[,c("q12_1.1_h","q12_1.2_h")], na.rm=TRUE),
-          # 'synthetic' option not present in early weeks [Coronavirus immediate restriction notice]
-          q12_1.0_i_comp=rowSums(.[,c("q12_1.1_i","q12_1.2_i")], na.rm=TRUE),
-          # 'synthetic' option not present in early weeks [Coronavirus restriction notice]
-          q12_1.0_j_comp=rowSums(.[,c("q12_1.1_j","q12_1.2_j")], na.rm=TRUE)
-          )
-    
   data=data %>% 
     # any action against businesses which should be closed by law, consistent series
-    mutate(q12_1.0___comp= rowSums(.[unlist(aggs$consistent_closed)], na.rm = TRUE))
+    mutate(q12_1.0___comp= rowSums(.[intersect(names(data),unlist(aggs$consistent_closed))], na.rm = TRUE))
 
     return(data)
 }
@@ -413,8 +472,9 @@ udf_split_txt = function(data, txt='q10_1.0'){
 
 # *** Aggregation function for text fields *** ----
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-udf_agg_text=function(pubData, group_cols='q24_'){
-  # takes pubData=DF, optional group_cols = char vector of variables to split by. E.g. group_cols="q1_" splits things by 
+#txtData=pubData
+udf_agg_text=function(txtData, group_cols='q24_'){
+  # takes txtData=DF, optional group_cols = char vector of variables to split by. E.g. group_cols="q1_" splits things by 
   # region. Potentially can be multi-length---e.g. group_cols=c("q1_","q2") [but splitting by respondent gives 1s for counts etc]
   # default = end-date [q24_].
   # In udf_agg_data() we split the concatenated list of things which would make enforcement etc more effective
@@ -428,7 +488,8 @@ udf_agg_text=function(pubData, group_cols='q24_'){
   # [if analysing by 1st, 2nd, 3rd then don't do this]
   #
   # add LA [q2_] to the list of variables:
-  allImpacts=select(pubData,c('q2_',unlist(aggs$impact_vars),group_cols)) %>% 
+  # [intersect is there in case there're missing cols]
+  allImpacts=select(txtData,c('q2_',intersect(names(txtData),unlist(aggs$impact_vars)),group_cols)) %>% 
     # unpivot to get variable names in one column
     # [keep end data/other grouping cols in separate cols]
     pivot_longer(., -c('q2_',group_cols)) %>% 
@@ -443,7 +504,8 @@ udf_agg_text=function(pubData, group_cols='q24_'){
 
   # We want to calculate counts and % for text variables [how many responses of type x were recorded]
   # put text responses in their own DF
-  textResps=select(pubData,c(unlist(aggs$text_vars),group_cols)) %>% 
+  # [intersect is there in case columns are missing]
+  textResps=select(txtData,c(intersect(names(txtData),unlist(aggs$text_vars)),group_cols)) %>% 
     # unpivot it  
     pivot_longer(., -group_cols) %>% 
     # quite a few rows are missing data. Remove them
@@ -474,13 +536,13 @@ udf_agg_text=function(pubData, group_cols='q24_'){
 
 # *** Aggregation function for numbers *** ----
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-udf_agg_nos=function(data,group_cols='q24_'){
+udf_agg_nos=function(df,group_cols='q24_'){
   # summarise numeric data by [e.g.] week
   # takes pubData=DF, optional group_cols = char vector of variables to split by. E.g. group_cols="q1_" splits things by 
   # region. Potentially can be multi-length---group_cols=c("q1_","q2") [but splitting by respondent gives 1s for counts etc]
   # default = end-date [q24_].
   
-  pubDataByGrp=pubData %>% 
+  pubDataByGrp=df %>% 
     # i.e. by week end date
     group_by(across(all_of(group_cols))) %>% 
     # get sums and counts of entries > 0. Need to remove the NAs here...
@@ -489,10 +551,11 @@ udf_agg_nos=function(data,group_cols='q24_'){
                                                             na.rm = TRUE))),
               q2__cnt=n()) %>%
     ungroup() %>% 
-    # For q25, types of business causing worst breaches, respondents can put in a rank 1-3 against values
-    # it doesn't make sense to include sums of these 1-3 ranks for the weekly summary, but it does make sense to include the count
+    # For q25/q27, types of business causing worst breaches/what would make preparedness better, 
+    # respondents can put in a rank 1-3 against values it doesn't make sense to include 
+    # sums of these 1-3 ranks for the weekly summary, but it does make sense to include the count
     # count of [any] 1-3, though.
-    select(.,!(matches('q25.*sum')))
+    select(.,!(matches('q25.*sum','q27.*sum')))
   
   return(pubDataByGrp)
 }

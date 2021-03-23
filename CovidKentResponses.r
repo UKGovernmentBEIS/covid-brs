@@ -16,14 +16,20 @@
 # *** Optional:
 rm(list=ls()) # remove anything in memory
 
-# Change this to something appropriate:
-setwd("C:/Users/fsymons/Downloads/Annexes/covid")
+# ***Working directory*** ====
+# *************
 # NB if not creating a separate R project, you'll need to put all the scripts [like the one below and its precedents] into the working 
 # directory
+# Assumes we're using R Studio:
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# Use the following if not:
+# setwd(getSrcDirectory()[1])
 
-# Constants ====
+# Constants for just this script ====
 # *********
-resultsDir="C:/Users/fsymons/Downloads/Annexes/"
+# NB other constants are in CovidConstants.r
+resultsDir=paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/") # For convenience, use the scripts directory
+# resultsDir="C:/Users/fsymons/Downloads/Annexes/" # or uncomment and change this...
 
 # Names of Kent respondents as they appear in the survey
 kent=c(
@@ -95,7 +101,7 @@ time=Sys.time()
 #
 # Take the "Intro" sheet from the README file in the "external sharing directory" in its entirety.
 # Do this to ensure the information is always up to date. Load rather than read the file to preserve formatting
-wb=loadWorkbook(paste0(filesDir,"README_BusinessRestrictionsSurvey.xlsx"))
+wb=loadWorkbook(paste0(filesDir,readmeFile)) # filesDir = CovidConstants.r
 # delete all except the "Intro" sheet [if there are any others: have to do like this: have to delete sheets one at a time]
 lapply(names(wb)[which(!(names(wb) %in% c('Intro')))],function(i){removeWorksheet(wb,i)})
 
@@ -118,5 +124,5 @@ addStyle(wb, 'kent', st1, rows = 1, cols = 1,stack = TRUE)
 # save
 saveWorkbook(wb, paste0(resultsDir,'Kent.xlsx'),overwrite = TRUE)
 
-# *** Now carefully check the file for disclosive info before posting to SharePoint..!
+# *** Now carefully check the file for disclosive info before posting to SharePoint..! ====
 
