@@ -34,7 +34,9 @@ resultsDir=paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/") # Fo
 charts=data.frame(var=c('q24_','q8_1.0_sum','q9__.__sum','q12__.__sum'),
                   varName=c('week ending','checks by week end','FTE by week end','actions by week end'))
 
-# list of action types: data variable and "English" translation
+# list of action types: data variable and "English" translation. These variables result from CovidByWeek.r where
+# we create a version of each input variable which is the sum (_sum) and another which is the count >0 (_cnt) and use
+# these names to select the variables we want [below]
 actions=data.frame(var=c('q24_','q12__.__a_sum','q12__.__b_sum','q12__.__c_sum',
                          'q12__.__d_sum','q12__.__e_sum','q12__.__f_sum',
                          'q12__.__g_sum','q12__.__h_sum','q12__.__i_sum','q12__.__j_sum'),

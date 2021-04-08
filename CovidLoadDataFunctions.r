@@ -259,6 +259,10 @@ udf_aggs = function(){
   aggs$all_actions=c(unlist(aggs$closed_all),unlist(aggs$closed_law),unlist(aggs$closed_tier),unlist(aggs$home),
                      unlist(aggs$la_order),unlist(aggs$no_protect),unlist(aggs$opening_hrs),unlist(aggs$other),
                      unlist(aggs$other2),unlist(aggs$six),unlist(aggs$table),unlist(aggs$test_and_trace))
+  
+  ### i) Put in all actions against any type of "other" breach type ['other' + 'other 2'] ----
+  aggs$any_other=c(unlist(aggs$other),unlist(aggs$other2))
+    
   return(aggs)
 }
 
@@ -267,7 +271,6 @@ udf_aggs = function(){
 # This function performs optional aggregation-type manipulations on an input DF
 # Designed to be called after individ. weeks' datasets assembled into concatenated DF. Won't be needed for all scripts
 udf_agg_data = function(data){
-x=data
   # NB in the following, we have to take account of the fact that some weeks don't have certain columns. Mostly
   # this isn't a problem because we put all the data from all weeks into a "pot"——so it's likely that the column
   # will be present in at least one week and hence in the overall dataset. Just in case that's not true,
@@ -280,6 +283,9 @@ x=data
            
        # totals for any breach type, for any infraction action type
        q12__._=rowSums(.[intersect(names(data),unlist(aggs$all_actions))], na.rm=TRUE),
+       
+       # totals for "any other" breach type ['other' + 'other 2']
+       q12_6y7.0_=rowSums(.[intersect(names(data),unlist(aggs$any_other))], na.rm=TRUE),
        
        # NB need rowSums approach because there will be NAs.
        # a) By sanction type [aggs$across breach types]
@@ -371,9 +377,9 @@ x=data
    # ii) Closed by law consistent series
    # NB in q12...a-g, reconstruct figs from later weeks which are consistent with earlier by adding together later
    # weeks' sub categories. [in later weeks this was divided into "national" and "tier-specific" closures]
-   # verbal advice
     data=data %>%
       mutate(
+        # verbal advice
         q12_1.0_a_comp=ifelse(is.na(q12_1.0_a) | q12_1.0_a==0,rowSums(.[,c("q12_1.1_a","q12_1.2_a")], na.rm=TRUE),q12_1.0_a),
         # letter
         q12_1.0_b_comp=ifelse(is.na(q12_1.0_b) | q12_1.0_b==0,rowSums(.[,c("q12_1.1_b","q12_1.2_b")], na.rm=TRUE),q12_1.0_b),
@@ -394,7 +400,31 @@ x=data
         # 'synthetic' option not present in early weeks [Coronavirus restriction notice]
         q12_1.0_j_comp=rowSums(.[,c("q12_1.1_j","q12_1.2_j")], na.rm=TRUE)
       )  
-  
+    # create a combined "other" + "other 2" column [i.e. all "other"] for breach types
+    data=data %>%
+      mutate(
+        # verbal advice
+        q12_6y7.0_a=rowSums(.[,c("q12_6.0_a","q12_7.0_a")], na.rm=TRUE),
+        # letter
+        q12_6y7.0_b=rowSums(.[,c("q12_6.0_b","q12_7.0_b")], na.rm=TRUE),
+        # direction notice
+        q12_6y7.0_c=rowSums(.[,c("q12_6.0_c","q12_7.0_c")], na.rm=TRUE),
+        # fixed penalty
+        q12_6y7.0_d=rowSums(.[,c("q12_6.0_d","q12_7.0_d")], na.rm=TRUE),
+        # prohibition notice
+        q12_6y7.0_e=rowSums(.[,c("q12_6.0_e","q12_7.0_e")], na.rm=TRUE),
+        # prosecutions
+        q12_6y7.0_f=rowSums(.[,c("q12_6.0_f","q12_7.0_f")], na.rm=TRUE),
+        # improvement notice
+        q12_6y7.0_g=rowSums(.[,c("q12_6.0_g","q12_7.0_g")], na.rm=TRUE),
+        # 'synthetic' option not present in early weeks [Coronavirus improvement notice]
+        q12_6y7.0_h=rowSums(.[,c("q12_6.0_h","q12_7.0_h")], na.rm=TRUE),
+        # 'synthetic' option not present in early weeks [Coronavirus immediate restriction notice]
+        q12_6y7.0_i=rowSums(.[,c("q12_6.0_i","q12_7.0_i")], na.rm=TRUE),
+        # 'synthetic' option not present in early weeks [Coronavirus restriction notice]
+        q12_6y7.0_j=rowSums(.[,c("q12_6.0_j","q12_7.0_j")], na.rm=TRUE)
+      ) 
+
   data=data %>% 
     # any action against businesses which should be closed by law, consistent series
     mutate(q12_1.0___comp= rowSums(.[intersect(names(data),unlist(aggs$consistent_closed))], na.rm = TRUE))
