@@ -228,8 +228,10 @@ udf_aggs = function(){
       # Premises failing to take reasonable steps to prevent bookings of over 6
     six=list(c('q12_10.0_a','q12_10.0_b','q12_10.0_c','q12_10.0_d','q12_10.0_e','q12_10.0_f','q12_10.0_g',
           'q12_10.0_h','q12_10.0_i','q12_10.0_j')),
+      # other breaches
     other=list(c('q12_6.0_a','q12_6.0_b','q12_6.0_c','q12_6.0_d','q12_6.0_e','q12_6.0_f','q12_6.0_g',
             'q12_6.0_h','q12_6.0_i','q12_6.0_j')),
+      # other (2) breaches
     other2=list(c('q12_7.0_a','q12_7.0_b','q12_7.0_c','q12_7.0_d','q12_7.0_e','q12_7.0_f','q12_7.0_g',
              'q12_7.0_h','q12_7.0_i','q12_7.0_j')),
     
@@ -246,14 +248,15 @@ udf_aggs = function(){
     
     ### f) fields holding business types [Takeaways etc] ----
     # NB This doesn't include "other" where respondents can add business types and ranks against them
+    # In order to include this, need to add 'q25_27.0' to the list below
     business_type=list(c('q25_1.0','q25_2.0','q25_3.0','q25_4.0','q25_5.0','q25_6.0','q25_7.0','q25_8.0',
             'q25_9.0','q25_10.0','q25_11.0','q25_12.0','q25_13.0','q25_14.0','q25_15.0','q25_16.0','q25_17.0',
             'q25_18.0','q25_19.0','q25_20.0','q25_21.0','q25_22.0','q25_23.0','q25_24.0','q25_25.0','q25_26.0',
             'q25_29.0')),
     ### g) What would increase your preparedness for non-essential retail reopening? ----
     # NB This doesn't include "other" where respondents can add business types and ranks against them
-    # It does include "don't know"
-    preparedness=list(c('Q70_1','Q70_2','Q70_3','Q70_4','Q70_5','Q70_6','Q70_7','Q70_8','Q70_10'))
+    # It does include "don't know". To add in "other" need to add 'q27_9.0' to the list below
+    preparedness=list(c('q27_1.0','q27_2.0','q27_3.0','q27_4.0','q27_5.0','q27_6.0','q27_7.0','q27_8.0','q27_10.0'))
   )
   ### h) Put in all actions against any breach type ----
   aggs$all_actions=c(unlist(aggs$closed_all),unlist(aggs$closed_law),unlist(aggs$closed_tier),unlist(aggs$home),
