@@ -30,16 +30,16 @@ source('CovidByWeek.r')
 resultsDir=paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/") # For convenience, use the scripts directory
 # resultsDir="C:/Users/fsymons/Downloads/Annexes/" # or uncomment and change this...
 
- charts=data.frame(var=c('q24_','q2__cnt','q4__sum','q5__sum','q6__sum','q8_1.0_sum','q8_2.0_sum',
-                         'q8_3.0_sum','q9__.__sum','q12_1.0__sum','q12_1.1__sum','q12_1.2__sum',
+ charts=data.frame(var=c('q24_','q2__cnt','q4__sum','q5__sum','q6__sum','q6__sum','q8_1.0_sum','q8_2.0_sum',
+                         'q8_3.0_sum','q9__.__sum','q9__.__cnt','q12_1.0__sum','q12_1.1__sum','q12_1.2__sum',
                          'q12_2.0__sum','q12_3.0__sum','q12_4.0__sum','q12_5.0__sum','q12_6y7.0__sum',
                          'q12_8.0__sum','q12_9.0__sum','q12_10.0__sum','q12__.__sum','q12__.__a_sum',
                          'q12__.__b_sum','q12__.__c_sum','q12__.__d_sum','q12__.__e_sum','q12__.__f_sum',
                          'q12__.__g_sum','q12__.__h_sum','q12__.__i_sum','q12__.__j_sum'),
                    varName=c('week ending','responses','requests for advice',
-                             'requests responded within agreed time','complaints received',
+                             'requests responded within agreed time','complaints received','complaints weekly',
                              'checks by week end','checks due to complaint by week end',
-                             'non-compliant businesses found by checks','full-time equivalent employees',
+                             'non-compliant businesses found by checks','full-time equivalent employees','fte',
                              'businesses failing to remain closed',
                              'businesses failing to remain closed (all tiers)',
                              'businesses failing to remain closed (tier specific)',
@@ -84,7 +84,7 @@ responsesChart
 # NB given that previous weeks' requests may be responded to within a subsequent week and count as "win agreed time"
 # the "win agreed time" series can be greater than the requests
 requestsChart = plot_ly(data=standard_charts, x = ~`q24_`, y=~`q4__sum_csum`, name='all requests', type='scatter',mode='lines+markers') %>% 
-  add_trace(y = ~	q5__sum_csum, name = 'response within agreed time', mode = 'lines+markers') %>% 
+  #add_trace(y = ~	q5__sum_csum, name = 'response within agreed time', mode = 'lines+markers') %>% 
   layout(title = "Cumulative requests for advice",
          xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
          yaxis = list(title = "Number of requests",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = TRUE)
@@ -95,6 +95,12 @@ complaintsChart = plot_ly(data=standard_charts, x = ~`q24_`, y=~`q6__sum_csum`, 
          xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
          yaxis = list(title = "Number of compaints",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = FALSE)
 complaintsChart
+
+complaintsWeeklyChart = plot_ly(data=standard_charts, x = ~`q24_`, y=~`q6__sum`/`q2__cnt`, name='complaints', type='scatter',mode='lines+markers') %>% 
+  layout(title = "Weekly complaints",
+         xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
+         yaxis = list(title = "Number of compaints",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = FALSE)
+complaintsWeeklyChart
 
 # Simple line chart of cumulative checks with time
 checksChart = plot_ly(data = standard_charts, x = ~`q24_`, y = ~`q8_1.0_sum_csum`, name='all checks', type="scatter", mode="lines+markers", line=list(width = 1)) %>% 
@@ -111,6 +117,13 @@ fteChart= plot_ly(data = standard_charts, x = ~`q24_`, y = ~`q9__.__sum_csum`, t
          xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
          yaxis = list(title = "Full-time equivalent resource",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = F)
 fteChart
+
+# full-time equivalent resource graph on weekly
+fteWeeklyChart= plot_ly(data = standard_charts, x = ~`q24_`, y = ~`q9__.__cnt`/`q2__cnt`, type="scatter", mode="lines+markers", line=list(width = 1, color="#005674")) %>% 
+  layout(title = "Weekly full-time equivalent resource",
+         xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
+         yaxis = list(title = "Full-time equivalent resource",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = F)
+fteWeeklyChart
 
 # Add a vector of total actions for each breach. NB exclude 'q12_1.0__sum' if going from mid-Dec as this option
 # not available
