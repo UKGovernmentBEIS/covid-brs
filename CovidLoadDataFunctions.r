@@ -65,7 +65,7 @@ udf_geog_lookups=function(){
   assign('surveyLADs',surveyLADs,envir=.GlobalEnv)
   # create table at respondent level [=311; each respondent name appears once]. Add resp. ID and non-overlapping area ID [=143 areas],
   # GOR [9 areas]. Do this by getting unique combinations of required fields.
-  surveyRespondents=unique(surveyLADs[c('Name.of.reporting.entity','ID.on.map','newID:.non-overlapping.area.ID','GOR')])
+  surveyRespondents=unique(surveyLADs[c('Name.of.reporting.entity','ID.on.map','newID:.non-overlapping.area.ID','GOR','Valid.from','Valid.to')])
   assign('surveyRespondents',surveyRespondents,envir=.GlobalEnv)
 }
 
@@ -265,7 +265,7 @@ udf_aggs = function(){
   
   ### i) Put in all actions against any type of "other" breach type ['other' + 'other 2'] ----
   aggs$any_other=c(unlist(aggs$other),unlist(aggs$other2))
-    
+
   return(aggs)
 }
 
