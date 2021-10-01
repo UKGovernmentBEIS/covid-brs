@@ -127,7 +127,9 @@ udf_load_data = function(filename, dir=filesDir){ # default value = filesDir [fr
     # remove any extraneous cols with names like "col1"
     select(intersect(names(.), as.vector(cols$ID.in.dataset))) %>% 
     # remove any entries with missing end dates
-    drop_na("q24_")
+    drop_na("q24_") %>% 
+    # trim whitespace from LA names:
+    mutate(q2_=trimws(q2_))
   
   # check if the DF data exists. If it does we'll add rows to it, if not create it  
   if(exists("data") && is.data.frame(data)){

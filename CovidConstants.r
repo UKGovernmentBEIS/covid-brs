@@ -10,9 +10,10 @@
 # contents of folder, and also seems to fail if file is open in XL. Seems a little more stable.
 
 #stemDir="\\\\beisgov.sharepoint.com@SSL/DavWWWRoot/sites/beis2/169/Shared Documents/Analytical Team/COVID-19/Business Restrictions/"
-stemDir="C:/Users/fsymons/OneDrive - Department for Business Energy and Industrial Strategy/Business Restrictions/"
+stemDir="C:/Users/fsymons/OneDrive - Department for Business Energy and Industrial Strategy/COVID-19 Business Restrictions/"
 # 
-filesDir=paste0(stemDir,"External Sharing/")
+filesDir=paste0(stemDir,"") # NB left this code in case folder structure changes
 #list.files(filesDir)
 
 readmeFile="README_BusinessRestrictionsSurvey.xlsx"
+

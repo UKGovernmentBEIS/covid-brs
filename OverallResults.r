@@ -6,13 +6,10 @@
 # * pubDataByWeek [numbers]: this is pivoted with week down the side.
 # Then take selected variables from this and output to XL
 
+#TestCommentforPush
+
 # *** Optional:
 rm(list=ls()) # remove anything in memory
-
-# Libraries
-library('plotly')
-library('stringr')
-library('knitr')
 
 # Working directory ====
 # *****************
@@ -24,13 +21,24 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 # aggregate data to week across regions [i.e. for England]
 # run this first because it removes anything in memory
 
-source('CovidByWeek.r')
+source('CovidByWeek.r') # this includes a clear memory statement so library calls must come afterwards
+
+# Libraries
+library('stringr')
+library('knitr')
+library('scales')
+
+# NB sources have to be in this order because 'CovidByWeek.r' starts by removing everything from memory 
+source("Captioner package.R") # This contains the "meat" of the captioner package otherwise available from github
 
 # Constants for just this script ====
 # ******************************
 # NB other constants are in CovidConstants.r
 resultsDir=paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/") # For convenience, use the scripts directory
 # resultsDir="C:/Users/fsymons/Downloads/Annexes/" # or uncomment and change this...
+
+# Date from which LAs have said we can share (=publish) the survey data
+publishDataDate="2020-11-23"
 
 # In this DF, list the variables and labels that accompany them in charts
 # use this DF construction form to make the pairs more intelligible
@@ -71,10 +79,48 @@ charts=rbind(charts,c('q12_1.1y2__sum','failing to remain closed'))
 charts=rbind(charts,c('other_breaches','all other breaches'))
 charts=rbind(charts,c('q12__.__others_sum','all other actions'))
 
+## colours ====
+# These are the OPSS branding colours. Below, commented out, are BEIS colours
+colour1="#003366" # OPSS dark blue
+colour2="#0099cc" # cyan
+colour3="#99cc00" # lime green
+colour4="#ffcc33" # gold
+colour5="#ff3399" # magenta
+colour6="#66cc33" # green
+colour7="#ff9933" # orange
+colour8="#99adc2" # grey blue [tint of OPSS blue]
+
+# colour1="#00AEEF" # "BEIS" blue
+# colour2="#005674" # darker teal blue
+# colour3="#000000" # black
+# colour4="#A6A6A6" # mid-light grey
+# colour5="#74ac00" # lime green
+# colour6="#8080ff" # mid-light blue
+# colour7="#404040" # v dark grey
+# colour8="#73A1C4" # grey blue
+
+## main chart theme ====
+# set the base theme for all sub charts:
+th=theme(
+  panel.border = element_blank(), # no panel border
+  panel.background = element_rect(fill = "white"), # white rectangular background
+  panel.grid.major = element_blank(), # no grid lines
+  panel.grid.minor = element_blank(),
+  legend.position= "none", # no legend
+  axis.line = element_line(size = 0.3, linetype = "solid", colour = "black"),
+  axis.title.x = element_text(hjust = 1, size=15),
+  axis.text.y = element_text(hjust = 1, size=15, margin = margin(r=5)),
+  axis.text.x = element_text(hjust = 0.5, size=15, margin = margin(t=10)), # centre align x axis labels
+  plot.title = element_text(hjust = 0, size=15)
+)
+
+#specify geom to update, and list attibutes you want to change appearance of
+update_geom_defaults("line", list(size = 1.6))
+
 # date of switch in administrative boundaries to new geography--at least as far as survey results concerned [actual switch = 1/4/2021]
 geoChangeDate=as.Date("2021-03-29")
 
-# ====list of breaches
+## list of breaches ====
 # These are breaches of the Covid business restrictions regulations
 # This 'detailed' list used for the table. Note still includes amalgamations:--1.1 & 1.2, 6 & 7.
 detailedBreachesVars=c('q12_1.1y2__sum_csum','q12_2.0__sum_csum','q12_3.0__sum_csum','q12_4.0__sum_csum',
@@ -84,7 +130,7 @@ detailedBreaches=filter(charts,var %in% detailedBreachesVars)
 breachVars=c('q12__.__sum','q12_1.1y2__sum','q12_5.0__sum','other_breaches')
 breaches=filter(charts,var %in% sub('_csum','',breachVars))
 
-# ====list of actions by LAs
+## list of actions by LAs ====
 # Create a vector of total actions for each LA action [intervention] type. 
 actionVars=c('q12__.__a_sum','q12__.__b_sum','q12__.__c_sum','q12__.__d_sum',
              'q12__.__e_sum','q12__.__f_sum','q12__.__g_sum','q12__.__h_sum','q12__.__i_sum','q12__.__j_sum')
@@ -95,11 +141,11 @@ actionVars=c('q12__.__a_sum','q12__.__b_sum','q12__.__c_sum','q12__.__d_sum',
 # First, create an appropriate pair of cols for "others [grouped]" by week and cumulatively
 otherActionVars=actionVars[-c(1:2)] # create a vector of "others"
 
-# List of minor actions for separate chart
+## List of minor actions for separate chart ====
 otherActions=filter(charts,var %in% otherActionVars)
 otherActions$var=paste0(otherActions$var,"_csum") # but those are per week so convert names to cumulative
 
-# Get the verbal/email bits of actionVars + other
+## Get the verbal/email bits of actionVars + other ====
 mainActionVars=c(actionVars[1:2],'q12__.__others_sum')
 mainActions=filter(charts,var %in% mainActionVars) # get variables from list above
 mainActions$var=paste0(mainActions$var,"_csum") # but those are per week so convert names to cumulative
@@ -107,18 +153,36 @@ mainActions$var=paste0(mainActions$var,"_csum") # but those are per week so conv
 mainActionsPw=mainActions %>% 
   mutate(var=paste0(var,"_prop")) # here we're calculating proportions [of total] for [cumm.] main actions
 
-# ====Processing code
+# Functions for just this script ====
+# ******************************
+# function for labelling ticks as e.g. 10k instead of 10,000
+ks <- function (x) { number_format(accuracy = 1,
+                                   scale = 1/1000,
+                                   # suffix = "k",
+                                   big.mark = ",")(x) }
+
+# This function is the only way I could dynamically supply variables names (strings) to rename statements
+# from lists. Used when creating version of chart DF for spreadsheet
+udf_getVar=function(x){
+  variable=sym(x)
+  return(variable)
+}
+
+# ====Processing code ====
+#setup to use captions in Rmd
+fig_nums <- captioner()
+tab_nums <- captioner(prefix="Table")
 
 # Calculate the base no [denominator] of respondents. This changed on 1/4/2021 but we applied it 
 # from survey w/c 29/3/2021, w/e 4/4/2021--even though this spans the boundary change.
 udf_geog_lookups() # get the basic geog lookups for the survey
 # count before boundary change
-initialLaCnt=nrow(filter(surveyRespondents, Valid.from=='05/11/2020' & (Valid.to=='31/03/2021' | Valid.to=='20/06/2021')))
+initialLaCnt=nrow(distinct(select(filter(surveyRespondents, Valid.from=='05/11/2020' & (Valid.to=='31/03/2021' | Valid.to=='20/06/2021')),Name.of.reporting.entity)))
 # count after boundary change; 
-finalLaCnt=nrow(filter(surveyRespondents, (Valid.from=='05/11/2020' | Valid.from=='01/04/2021') &  Valid.to=='20/06/2021'))
+finalLaCnt=nrow(distinct(select(filter(surveyRespondents, (Valid.from=='05/11/2020' | Valid.from=='01/04/2021') &  Valid.to=='20/06/2021'),Name.of.reporting.entity)))
 
 # only include the data LAs have allowed us to share
-rptDataByWeek = filter(pubDataByWeek, q24_>= "2020-12-13") %>% 
+rptDataByWeek = filter(pubDataByWeek, q24_>= publishDataDate) %>% 
   # Compute no. of businesses which should be closed [all tiers+tier specific]
   mutate(q12_1.1y2__sum=q12_1.1__sum+q12_1.2__sum) %>% 
   # For main chart, add up everything which is not 'business which should be closed' or 'not protecting staff and customers'
@@ -161,240 +225,532 @@ breachesTable=standard_charts %>%
 
 # Standard charts ====
 # ***************
-# Let's use plotly
-# survey responses each week
-responsesChart = plot_ly(data = standard_charts, x = ~`q24_`, y = ~`q2__rate`, type="scatter", mode="lines+markers", line=list(width = 1, color="#005674")) %>% 
-  layout(title = "Survey responses",
-         xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
-         yaxis = list(title = "Response rate",showticklabels = TRUE,showline=TRUE,tickformat='%',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = FALSE)
+## weekly survey response rate chart ====
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+# abstract the variables and their English translations to a list we can reuse. variables first, then translations
+ChartVars=list() # initialise as we will reuse this variable later
+ChartVars=list('q24_','q2__rate','Week ending','Response rate, %') # abstract the variables to a list we can reuse
+names(ChartVars)[1]="Weekly response rates" # this is the chart name for the XL
+  
+# create DF for the chart for XL output
+# The udf_getVar() function approach is the only way I could get rename() to accept the list elements
+responsesChartDF=select(standard_charts, one_of(c(ChartVars[[1]],ChartVars[[2]]))) %>%
+  # the label says % so have to convert the figures to percentages. Use this [awkward] method; round to 1 dp
+  mutate(!!(variable=udf_getVar(ChartVars[[2]])):=round(!!(variable=udf_getVar(ChartVars[[2]]))*100,1)) %>% 
+  rename(!!(variable=udf_getVar(ChartVars[[3]])):=ChartVars[[1]], !!(variable=udf_getVar(ChartVars[[4]])):=ChartVars[[2]])
+
+# In the following we have to use the complicated !!(variable=udf_getVar())) formulation instead of [say] get(). The latter
+# fails in the RMD. This might be because the environment isn't clear
+responsesChart = ggplot2:: ggplot(data = standard_charts,aes(x = !!(variable=udf_getVar(ChartVars[[1]])), y = !!(variable=udf_getVar(ChartVars[[2]])))) +
+  geom_line(color = colour1) + th + #,size=1.4 
+  labs(title = ChartVars[[4]],y=element_blank(),x = list(title = paste0('\n',ChartVars[[3]]))) + # hack to increase space above title
+  scale_y_continuous(labels = function(x) x*100,limits = c(0,NA)) + #scales::percent
+  scale_x_date(date_labels="%b %Y",date_breaks  ="1 month")
 responsesChart
 
-# Simple line chart of cumulative requests for advice
+# create a list. Keep in it chart, chart name and chart DF
+# we'll use this to create the spreadsheet output later [=another script]
+covidFigs=list()
+covidFigs[[length(covidFigs)+1]] = list(responsesChart,responsesChartDF) # chart, DF
+names(covidFigs)[length(covidFigs)][[1]] = names(ChartVars)[1] # chart name
+
+## cumulative requests for advice chart ====
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # NB given that previous weeks' requests may be responded to within a subsequent week and count as "win agreed time"
 # the "win agreed time" series can be greater than the requests
-requestsChart = plot_ly(data=standard_charts, x = ~`q24_`, y=~`q4__sum_csum`, name='all requests', type='scatter',mode='lines+markers') %>% 
-  #add_trace(y = ~	q5__sum_csum, name = 'response within agreed time', mode = 'lines+markers') %>% 
-  layout(title = "Cumulative requests for advice",
-         xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
-         yaxis = list(title = "Number of requests",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = FALSE)
+
+ChartVars=list()
+ChartVars=list('q24_','q4__sum_csum','Week ending','Cumulative requests to survey respondents, thousands') # abstract the variables to a list we can reuse
+names(ChartVars)[1]="Cumulative requests for advice from businesses" # this is the chart name for the XL
+
+requestsChart = ggplot2:: ggplot(data = standard_charts,aes(x = !!(variable=udf_getVar(ChartVars[[1]])), y = !!(variable=udf_getVar(ChartVars[[2]])))) +
+  geom_line(color = colour1 ) + th + 
+  labs(title = ChartVars[[4]],y=element_blank(),x = list(title = paste0('\n',ChartVars[[3]]))) + # hack to increase space above title
+  scale_y_continuous(labels = ks,limits = c(0,NA)) +
+  scale_x_date(date_labels="%b %Y",date_breaks  ="1 month")
 requestsChart
 
-# cumulative complaints chart  
-complaintsChart = plot_ly(data=standard_charts, x = ~`q24_`, y=~`q6__sum_csum`, name='complaints', type='scatter',mode='lines+markers') %>% 
-  layout(title = "Cumulative complaints",
-         xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
-         yaxis = list(title = "Number of compaints",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = FALSE)
+# create DF for the chart for XL output
+# The udf_getVar() function approach is the only way I could get rename() to accept the list elements
+requestsChartDF=select(standard_charts, one_of(c(ChartVars[[1]],ChartVars[[2]]))) %>% 
+  # remove the "thousands" from the column heading [which is based on the y axis title---that _is_ in 000s]
+  rename(!!(variable=udf_getVar(ChartVars[[3]])):=ChartVars[[1]], !!(variable=udf_getVar(sub(', thousands','',ChartVars[[4]]))):=ChartVars[[2]])
+
+# add to list for later XL creation
+covidFigs[[length(covidFigs)+1]] = list(requestsChart,requestsChartDF) # DF, variables in chart from DF
+names(covidFigs)[length(covidFigs)][[1]] =  sub(', thousands','', names(ChartVars)[1]) # chart name
+
+## cumulative complaints chart ====
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ChartVars=list()
+ChartVars=list('q24_','q6__sum_csum','Week ending','Cumulative complaints to survey respondents, thousands') # abstract the variables to a list we can reuse
+names(ChartVars)[1]="Cumulative complaints about COVID-19 non-compliance" # this is the chart name for the XL
+
+complaintsChart = ggplot2:: ggplot(data = standard_charts,aes(x = !!(variable=udf_getVar(ChartVars[[1]])), y = !!(variable=udf_getVar(ChartVars[[2]])))) +
+  geom_line(color = colour1 ) + th + 
+  labs(title = ChartVars[[4]],y=element_blank(),x = list(title = paste0('\n',ChartVars[[3]]))) + # hack to increase space above title
+         scale_y_continuous(labels = ks,limits = c(0,NA)) +
+         scale_x_date(date_labels="%b %Y",date_breaks  ="1 month")
 complaintsChart
 
-# weekly (new) complaints
-complaintsWeeklyChart = plot_ly(data=standard_charts, x = ~`q24_`, y=~`q6__sum`/`q2__cnt`, name='complaints', type='scatter',mode='lines+markers') %>% 
-  layout(title = "Weekly complaints",
-         xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
-         yaxis = list(title = "Number of compaints",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = FALSE)
+# create DF for the chart for XL output
+# The udf_getVar() function approach is the only way I could get rename() to accept the list elements
+complaintsChartDF=select(standard_charts, one_of(c(ChartVars[[1]],ChartVars[[2]]))) %>% 
+  # again, remove the "thousands" from the col name: not appropriate here
+  rename(!!(variable=udf_getVar(ChartVars[[3]])):=ChartVars[[1]], !!(variable=udf_getVar(sub(', thousands','',ChartVars[[4]]))):=ChartVars[[2]])
+
+# add to list for later XL creation
+covidFigs[[length(covidFigs)+1]] = list(complaintsChart,complaintsChartDF) # DF, variables in chart from DF
+names(covidFigs)[length(covidFigs)][[1]] = sub(', thousands','', names(ChartVars)[1]) # chart name
+
+## weekly (new) complaints chart ====
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# add a derived col. to DF standard_charts so we can extract that later when creating the spreadsheet with the chart data
+standard_charts=standard_charts %>% 
+  mutate('q6__sum/q2__cnt'=`q6__sum`/`q2__cnt`)
+
+ChartVars=list()
+ChartVars=list('q24_','q6__sum/q2__cnt','Week ending','Average weekly complaints to survey respondents') # abstract the variables to a list we can reuse
+names(ChartVars)[1]="Weekly (new) complaints about COVID-19 non-compliance" # this is the chart name for the XL
+
+complaintsWeeklyChart = ggplot2:: ggplot(data = standard_charts,aes(x = !!(variable=udf_getVar(ChartVars[[1]])), y = !!(variable=udf_getVar(ChartVars[[2]])))) +
+  geom_line(color = colour1 ) + th + 
+  labs(title = ChartVars[[4]],y=element_blank(),x = list(title = paste0('\n',ChartVars[[3]]))) + # hack to increase space above title
+  scale_y_continuous(limits = c(0,NA)) +
+  scale_x_date(date_labels="%b %Y",date_breaks  ="1 month")
 complaintsWeeklyChart
 
-# Simple line chart of cumulative checks with time
-checksChart = plot_ly(data = standard_charts, x = ~`q24_`, y = ~`q8_1.0_sum_csum`, name='all checks', type="scatter", mode="lines+markers", line=list(width = 1)) %>% 
-  add_trace(y = ~	q8_2.0_sum_csum, name = 'checks from complaints', mode = 'lines+markers') %>% 
-  add_trace(y = ~	q8_3.0_sum_csum, name = 'non-compliant businesses', mode = 'lines+markers') %>% 
-  layout(title = "Cumulative Covid compliance checks",
-        xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
-        yaxis = list(title = "Number of checks/businesses",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = TRUE)
+# create DF for the chart for XL output
+# The udf_getVar() function approach is the only way I could get rename() to accept the list elementscomplaintsWeeklyChartDF=select(standard_charts, one_of(c(complaintsChartVars[[1]],complaintsChartVars[[2]]))) %>% 
+complaintsWeeklyChartDF=select(standard_charts, one_of(c(ChartVars[[1]],ChartVars[[2]]))) %>% 
+  # round the figures to 1 dp. Note awkward syntax to avoid hard coding col names.
+  mutate(!!(variable=udf_getVar(ChartVars[[2]])):=round(!!(variable=udf_getVar(ChartVars[[2]])),1)) %>%
+  rename(!!(variable=udf_getVar(ChartVars[[3]])):=ChartVars[[1]], !!(variable=udf_getVar(ChartVars[[4]])):=ChartVars[[2]])
+
+# add to list for later XL creation
+covidFigs[[length(covidFigs)+1]] = list(complaintsWeeklyChart,complaintsWeeklyChartDF) # DF, variables in chart from DF
+names(covidFigs)[length(covidFigs)][[1]] = names(ChartVars)[1] # chart name
+
+## cumulative checks: all, those from complaints and non-compliant businesses found chart ====
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ChartVars=list()
+# In this more complex one the order is x variable, list of y variables, x variable English name, y axis title, list of y variable English names,
+ChartVars=list('q24_',list('q8_1.0_sum_csum','q8_2.0_sum_csum','q8_3.0_sum_csum'),'Week ending',
+               'Cumulative checks performed/non-compliant businesses found by survey respondents, thousands',
+               list('all checks','checks from complaints','non-compliant businesses')) # abstract the variables to a list we can reuse
+names(ChartVars)[1]="Cumulative compliance checks and non-compliant businesses found by authorities" # this is the chart name for the XL
+
+#first gather data into tidy format
+checksTidy = standard_charts %>%
+  select(`q24_`,`q8_1.0_sum_csum`,`q8_2.0_sum_csum`,`q8_3.0_sum_csum`) %>%
+  gather(key = "variable", value = "value", -`q24_`) 
+
+checksChart = ggplot2::ggplot(data = checksTidy,aes(x = `q24_`, y = `value`))+ 
+  geom_line(aes(color = `variable`)) + 
+  labs(title = ChartVars[[4]],y=element_blank(),x = list(title = paste0('\n',ChartVars[[3]]))) + # hack to increase space above title
+  scale_y_continuous(labels=ks,limits = c(0,NA)) +
+  scale_x_date(date_labels="%b %Y",date_breaks  ="1 month") +
+  annotate("text", x=as.Date("2021-03-15"), y=90000, label= ChartVars[[5]][2], colour=colour2, hjust=0, size=8) + 
+  annotate("text", x=as.Date("2021-03-15"), y=15000, label= ChartVars[[5]][3], colour=colour3, hjust=0, size=8) + 
+  annotate("text", x=as.Date("2021-03-15"), y=330000, label= ChartVars[[5]][1], colour=colour1, hjust=0, size=8) + 
+  scale_color_discrete(labels=c(ChartVars[[5]][1],ChartVars[[5]][2],ChartVars[[5]][3]),
+                       type=c(colour1, colour3, colour2)) +
+  th 
 checksChart
 
-# full-time equivalent resource graph
-fteChart= plot_ly(data = standard_charts, x = ~`q24_`, y = ~`q9__.__sum_csum`, type="scatter", mode="lines+markers", line=list(width = 1, color="#005674")) %>% 
-  layout(title = "Cumulative full-time equivalent resource",
-         xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
-         yaxis = list(title = "Full-time equivalent resource",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = F)
+# create DF for the chart for XL output
+checksChartDF=select(standard_charts, one_of(c(ChartVars[[1]],unlist(ChartVars[[2]])))) %>% 
+  rename(!!(variable=udf_getVar(ChartVars[[3]])):=ChartVars[[1]]) %>% # rename the x axis variable
+  # rename the vector of y items; use vector of old and new names
+  rename_with(~ as.vector(unlist(ChartVars[5]))[which(as.vector(unlist(ChartVars[2])) == .x)], 
+              .cols = as.vector(unlist(ChartVars[2])))
+
+# add to list for later XL creation
+covidFigs[[length(covidFigs)+1]] = list(checksChart,checksChartDF) # DF, variables in chart from DF
+names(covidFigs)[length(covidFigs)][[1]] = names(ChartVars)[1] # chart name
+
+## cumulative full-time equivalent resource chart ====
+# NB not included in the report
+fteChart= ggplot2::ggplot(data = standard_charts, aes(x = `q24_`, y = `q9__.__sum_csum`)) + 
+  geom_line(color = colour2 ) + th + 
+  labs(title = "Cumulative full-time equivalent resource by survey respondents, thousands",
+         x = list(title = "Week ending"),
+         y = element_blank()) +
+  scale_y_continuous(labels = ks, limits = c(0,NA)) +
+  scale_x_date(date_labels="%b %Y",date_breaks  ="1 month")
 fteChart
 
-# full-time equivalent resource graph on weekly
-fteWeeklyChart= plot_ly(data = standard_charts, x = ~`q24_`, y = ~`q9__.__cnt`/`q2__cnt`, type="scatter", mode="lines+markers", line=list(width = 1, color="#005674")) %>% 
-  layout(title = "Weekly full-time equivalent resource",
-         xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
-         yaxis = list(title = "Full-time equivalent resource",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = F)
+## average weekly full-time equivalent resource chart ====
+# NB not included in the report
+fteWeeklyChart= ggplot2::ggplot(data = standard_charts, aes(x = `q24_`, y = `q9__.__sum`/`q2__cnt`)) + 
+  geom_line(color = colour2 ) + th + 
+  labs(title = "Average weekly full-time equivalent resource by survey respondents",
+       x = list(title = "Week ending"),
+       y = element_blank()) +
+  #scale_y_continuous(limits = c(0,NA)) +
+  scale_x_date(date_labels="%b %Y",date_breaks  ="1 month")
 fteWeeklyChart
 
-# ===Breaches by types
+## cumulative major types of breaches chart ====
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Determine breaches to plot. In order = all breaches/actions, all other breaches, 
 # combined "should be closed" series, not protecting customers
 # NB exclude 'q12_1.0__sum' if going from mid-Dec as this option not available
-breachesChart = plot_ly(data = standard_charts, x = ~`q24_`, y = ~`q12__.__sum_csum`, name='all breach types', type="scatter", mode="lines+markers", line=list(width = 1)) %>% 
-  add_trace(y = ~	other_breaches_csum, name = 'all other breaches', mode = 'lines+markers') %>% 
-  add_trace(y = ~	q12_1.1y2__sum_csum, name = 'businesses failing to remain closed', mode = 'lines+markers') %>% 
-  add_trace(y = ~	q12_5.0__sum_csum, name = 'not protecting staff and customers', mode = 'lines+markers') %>% 
-  layout(title = "Cumulative breaches of Covid regulations",
-         xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
-         yaxis = list(title = "Number of breaches",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = TRUE)
+
+ChartVars=list()
+# In this more complex one the order is x variable, list of y variables, x variable English name, y axis title, list of y variable English names,
+ChartVars=list('q24_',list('q12__.__sum_csum','other_breaches_csum','q12_1.1y2__sum_csum','q12_5.0__sum_csum'),'Week ending',
+               'Covid regulation breaches reported by survey respondents, thousands',
+               list('any breach','all other breaches','businesses failing to remain closed','not protecting staff and customers')) # abstract the variables to a list we can reuse
+names(ChartVars)[1]="Cumulative breaches of COVID-19 regulations for major breach categories" # this is the chart name for the XL
+
+# First gather into tidy format
+breachesTidy = standard_charts %>%
+  select(`q24_`,`q12__.__sum_csum`,`other_breaches_csum`,`q12_1.1y2__sum_csum`,`q12_5.0__sum_csum`) %>%
+  gather(key = "variable", value = "value", -`q24_`)
+str(breachesTidy$variable)
+# chart
+breachesChart = ggplot2::ggplot(data = breachesTidy,aes(x = `q24_`, y = `value`))+ 
+  geom_line(aes(color = `variable`)) + 
+  labs(title = ChartVars[[4]],y=element_blank(),x = list(title = paste0('\n',ChartVars[[3]]))) + # hack to increase space above title
+  scale_y_continuous(labels=ks,limits = c(0,NA)) +
+  scale_x_date(date_labels="%b %Y",date_breaks  ="1 month") +
+  annotate("text", x=as.Date("2021-03-15"), y=100000, label= ChartVars[[5]][1], colour=colour1, hjust=0, size=8) + 
+  annotate("text", x=as.Date("2021-03-15"), y=75000, label= ChartVars[[5]][2], colour=colour2, hjust=0, size=8) + 
+  annotate("text", x=as.Date("2021-03-15"), y=52000, label= ChartVars[[5]][4], colour=colour3, hjust=0, size=8) + 
+  annotate("text", x=as.Date("2021-03-15"), y=8000, label= ChartVars[[5]][3], colour=colour4, hjust=0, size=8) + 
+   scale_color_discrete(type=c(colour2, colour1, colour4, colour3)) +
+    th 
 breachesChart
 
-# NB The following is an alternative, small multis version of the above.
-# **As set up, list of variables uses non-cumulative totals. We adjust this below to work with the
-# cumulative figures. 
-udf_plotf=function(var){
-  # adjust the variable name to reflect cumulative version of the variable
-  plot_ly(standard_charts, x = ~q24_, y = as.formula(paste0("~", var[1],'_csum'))) %>%
-    add_lines(name = var[2])
-}
-plots=apply(breaches,1, udf_plotf)
-breachesMultiChart=subplot(plots, nrows = length(plots), shareX = TRUE, titleX = FALSE)
+# create DF for the chart for XL output
+breachesChartDF=select(standard_charts, one_of(c(ChartVars[[1]],unlist(ChartVars[[2]])))) %>% 
+  rename(!!(variable=udf_getVar(ChartVars[[3]])):=ChartVars[[1]]) %>% # rename the x axis variable
+  # rename the vector of y items; use vector of old and new names
+  rename_with(~ as.vector(unlist(ChartVars[5]))[which(as.vector(unlist(ChartVars[2])) == .x)], 
+              .cols = as.vector(unlist(ChartVars[2])))
 
-# In this version, per week pattern [not cumulative]
-udf_plotf=function(var){
-  # adjust the variable name to reflect cumulative version of the variable
-  plot_ly(standard_charts, x = ~q24_, y = as.formula(paste0("~", var[1]))) %>%
-    add_lines(name = var[2])
-}
-plots=apply(breaches,1, udf_plotf)
-breachesWklyMultiChart=subplot(plots, nrows = length(plots), shareX = TRUE, titleX = FALSE)
+# add to list for later XL creation
+covidFigs[[length(covidFigs)+1]] = list(breachesChart,breachesChartDF) # DF, variables in chart from DF
+names(covidFigs)[length(covidFigs)][[1]] = names(ChartVars)[1] # chart name
 
-# breaches table
-tableOfBreaches=kable(breachesTable)
+## cumulative main categories of actions undertaken chart ====
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# verbal + email + other action types grouped
 
-# ===Actions undertaken
-# **Create the plot of main actions [verbal + email + others grouped] **
-# create a blank plot
-blankPlot = plot_ly()%>%
-  layout(title = "Actions undertaken",
-         xaxis = list(title = "week ending"),
-         yaxis = list (title = "number of actions"),
-         type = 'scatter',
-         mode = 'line+markers')
-mainActionsChart = blankPlot
+ChartVars=list()
+# In this more complex one the order is x variable, list of y variables, x variable English name, y axis title, list of y variable English names,
+ChartVars=list('q24_',list('q12__.__sum_csum','q12__.__a_sum_csum','q12__.__b_sum_csum','q12__.__others_sum_csum'),'Week ending',
+               'Number of actions by survey respondents, thousands',
+               list('all actions','verbal advice','letter/email','all other actions')) # abstract the variables to a list we can reuse
+names(ChartVars)[1]="Cumulative actions against COVID-19 regulation breaches for main action types" # this is the chart name for the XL
 
-# run along variable list in actions DF and add these to plot
-# match the variable name to get the English entry
-for(i in mainActions$var){
-  mainActionsChart = mainActionsChart %>% add_trace(x = standard_charts[["q24_"]], y = standard_charts[[i]], name = mainActions$varName[which(mainActions$var==i)],
-                       type = 'scatter',
-                       mode = 'line+markers',
-                       line = list(width = 0.5))
-}
-# let's add in the total [same as total number of breaches !]
-mainActionsChart = mainActionsChart %>% 
-  add_trace(x = standard_charts[["q24_"]], y = standard_charts[["q12__.__sum_csum"]], name = 'all actions',
-            type = 'scatter',
-            mode = 'line+markers',
-            line = list(width = 0.5))
+# create Actions undertaken tidy format
+mainActionsTidy = standard_charts %>%
+  select(as.vector(unlist(c(ChartVars[1],unlist(ChartVars[2]))))) %>%
+  gather(key = "variable", value = "value", -`q24_`)
+
+mainActionsChart = ggplot2::ggplot(data = mainActionsTidy,aes(x = `q24_`, y = `value`))+ 
+  geom_line(aes(color = `variable`)) + 
+  labs(title = ChartVars[[4]],y=element_blank(),x = list(title = paste0('\n',ChartVars[[3]]))) + # hack to increase space above title
+  scale_y_continuous(labels=ks,limits = c(0,NA)) +
+  scale_x_date(date_labels="%b %Y",date_breaks  ="1 month") +
+  annotate("text", x=as.Date("2021-03-15"), y=100000, label= ChartVars[[5]][1], colour=colour1, hjust=0, size=8) + 
+  annotate("text", x=as.Date("2021-03-15"), y=72000, label= ChartVars[[5]][3], colour=colour2, hjust=0, size=8) + 
+  annotate("text", x=as.Date("2021-03-15"), y=36000, label= ChartVars[[5]][2], colour=colour3, hjust=0, size=8) + 
+  annotate("text", x=as.Date("2021-03-15"), y=8000, label= ChartVars[[5]][4], colour=colour4, hjust=0, size=8) + 
+  scale_color_discrete(labels=c(ChartVars[[4]][2],ChartVars[[5]][3],ChartVars[[5]][4],ChartVars[[5]][1]),
+                       type=c(colour3, colour2, colour4, colour1)) +
+  th 
 mainActionsChart
 
-mainActionsChartPw = plot_ly()%>%
-  layout(title = "Weekly actions undertaken",
-         xaxis = list(title = "week ending"),
-         yaxis = list (title = "proportion of actions",tickformat='%'),
-         type = 'scatter',
-         mode = 'line+markers'
-         )
+# create DF for the chart for XL output
+mainActionsChartDF=select(standard_charts, one_of(c(ChartVars[[1]],unlist(ChartVars[[2]])))) %>% 
+  rename(!!(variable=udf_getVar(ChartVars[[3]])):=ChartVars[[1]]) %>% # rename the x axis variable
+  # rename the vector of y items; use vector of old and new names
+  rename_with(~ as.vector(unlist(ChartVars[5]))[which(as.vector(unlist(ChartVars[2])) == .x)], 
+              .cols = as.vector(unlist(ChartVars[2])))
 
-# run along variable list in actions DF and add these to plot
-# match the variable name to get the English entry
-for(i in mainActionsPw$var){
-  mainActionsChartPw = mainActionsChartPw %>% 
-    add_trace(x = standard_charts[["q24_"]], 
-              y = standard_charts[[i]], name = mainActions$varName[which(mainActionsPw$var==i)],
-                                                    type = 'scatter',
-                                                    mode = 'line+markers',
-                                                    line = list(width = 0.5))
-}
-mainActionsChartPw
+# add to list for later XL creation
+covidFigs[[length(covidFigs)+1]] = list(mainActionsChart,mainActionsChartDF) # DF, variables in chart from DF
+names(covidFigs)[length(covidFigs)][[1]] = names(ChartVars)[1] # chart name
 
-# **Create the plot of other actions  **
-# create a blank plot
-otherActionsChart=blankPlot
+## cumulative "other" [minor] actions chart ====
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# i.e. those action types making up "other" in main actions chart
 
-for(i in otherActions$var){
-  otherActionsChart = otherActionsChart %>% 
-    add_trace(x = standard_charts[["q24_"]], y = standard_charts[[i]], 
-              name = otherActions$varName[which(otherActions$var==i)],
-                                                    type = 'scatter',
-                                                    mode = 'line+markers',
-                                                    line = list(width = 0.5))
-}
+ChartVars=list()
+# In this more complex one the order is x variable, list of y variables, x variable English name, y axis title, list of y variable English names,
+ChartVars=list('q24_',list('q12__.__e_sum_csum','q12__.__d_sum_csum','q12__.__h_sum_csum','q12__.__c_sum_csum',
+                           'q12__.__g_sum_csum','q12__.__i_sum_csum','q12__.__f_sum_csum','q12__.__j_sum_csum'),'Week ending',
+               'Number of actions by survey respondents',
+               list('prohibition notice','fixed penalty','coronavirus improvement notice','direction notice',
+                    'HSAWA improvement notice','coronavirus immediate restriction notice','prosecutions',
+                    'coronavirus restriction notice')) # abstract the variables to a list we can reuse
+names(ChartVars)[1]="Cumulative other actions against COVID-19 regulation breaches" # this is the chart name for the XL
+
+# first tidy format again
+otherActionsTidy = standard_charts %>%
+  select(as.vector(unlist(c(ChartVars[1],unlist(ChartVars[2]))))) %>%
+  gather(key = "variable", value = "value", -`q24_`)
+otherActionsTidy = otherActionsTidy %>% 
+  mutate(variable=case_when(
+    variable==paste0(ChartVars[[2]][1])~1,
+    variable==paste0(ChartVars[[2]][2])~2,
+    variable==paste0(ChartVars[[2]][3])~3,
+    variable==paste0(ChartVars[[2]][4])~4,
+    variable==paste0(ChartVars[[2]][5])~5,
+    variable==paste0(ChartVars[[2]][6])~6,
+    variable==paste0(ChartVars[[2]][7])~7,
+    variable==paste0(ChartVars[[2]][8])~8,
+    TRUE~-1
+  )) %>% 
+  mutate(variable=factor(variable,labels=as.vector(unlist(ChartVars[[5]]))))
+
+# chart
+otherActionsChart = ggplot2::ggplot(data = otherActionsTidy,aes(x = `q24_`, y = `value`))+ 
+  geom_line(aes(color = `variable`)) + 
+  labs(title = ChartVars[[4]],y=element_blank(),x = list(title = paste0('\n',ChartVars[[3]]))) + # hack to increase space above title
+  scale_y_continuous(limits = c(0,NA)) +
+  scale_x_date(date_labels="%b %Y",date_breaks  ="1 month") +
+# following are annotations, but they don't work for the lower, more bunched up items  
+  # annotate("text", x=as.Date("2021-04-15"), y=950, label= "prohibition notice", colour=colour3, hjust=0, size=4) + 
+  # annotate("text", x=as.Date("2021-04-15"), y=700, label= "fixed penalty", colour=colour2, hjust=0, size=4) + 
+  # annotate("text", x=as.Date("2021-04-15"), y=400, label= "coronavirus improvement notice", colour=colour6, hjust=0, size=4) + 
+  # annotate("text", x=as.Date("2021-04-15"), y=125, label= "direction notice", colour=colour1, hjust=0, size=4) + 
+  # annotate("text", x=as.Date("2021-04-15"), y=80, label= "HSAWA improvement notice", colour=colour5, hjust=0, size=4) + 
+  # annotate("text", x=as.Date("2021-05-15"), y=48, label= "coronavirus immediate restriction", colour=colour7, hjust=0, size=4) + 
+  # annotate("text", x=as.Date("2021-05-15"), y=20, label= "prosecutions", colour=colour4, hjust=0, size=4) + 
+  # annotate("text", x=as.Date("2021-04-15"), y=0, label= "coronavirus restriction", colour=colour8, hjust=0, size=4) + 
+  # # annotate("text", x=as.Date("2021-04-15"), y=8, label= "direction notices", colour=colour5, hjust=0, size=4) + 
+  # scale_color_discrete(labels=c("direction notice","fixed penalty","prohibition notice","prosecutions","hsawa improvement notice","coronavirus improvement notice","coronavirus immediate restriction","coronavirus restriction"),
+  scale_color_discrete(type=c(colour1, colour2, colour3, colour4,colour5,colour6,colour7,colour8)) +
+  th +
+  theme(legend.position=c(0.22,0.74), legend.title=element_blank(), 
+        legend.background=element_blank(), legend.key = element_blank(),
+        legend.spacing.y=unit(-1, 'cm'), # Note -ve number in call to spacing
+        legend.text = element_text(size = 14),
+         legend.key.size = unit(2, 'lines')) # increase the vertical space between legend items
 otherActionsChart
 
-# 
-# apply(actions,1,function(var){
-#   plot_ly(standard_charts, x = ~q24_, type="scatter", mode = 'lines+markers') %>%
-#     add_trace(x = ~q24_, y = as.formula(paste0("~", var[1])), mode = 'lines+markers') %>%
-#     add_lines(name = var[2])
-# })
-# 
-# plots=apply(actions,1, udf_plotf)
-# actionsChart=subplot(plots, nrows = length(plots), shareX = TRUE, titleX = FALSE)
-# actionsChart
-# 
-# breachesChart = plot_ly(data = standard_charts, x = ~`q24_`, y = ~`q12_1.0__sum`, name='businesses failing to remain closed', type="scatter", mode="lines+markers", line=list(width = 1)) %>% 
-#   add_trace(y = ~q12_1.1__sum, name = 'businesses failing to remain closed (all tiers)', mode = 'lines+markers') %>% 
-#   add_trace(y = ~q12_1.2__sum, name = 'businesses failing to remain closed (tier specific)', mode = 'lines+markers') %>% 
-#   add_trace(y = ~q12_2.0__sum, name = 'self-isolating workers working outside home', mode = 'lines+markers') %>% 
-#   add_trace(y = ~q12_3.0__sum, name = 'failing to comply with a Local Authority direction', mode = 'lines+markers') %>% 
-#   add_trace(y = ~q12_4.0__sum, name = 'not collecting test and trace information', mode = 'lines+markers') %>% 
-#   add_trace(y = ~q12_5.0__sum, name = 'not protecting staff and customers', mode = 'lines+markers') %>% 
-#   add_trace(y = ~q12_6y7.0__sum, name = 'other breaches', mode = 'lines+markers') %>% 
-#   add_trace(y = ~q12_8.0__sum, name = 'exceeding opening hours rules', mode = 'lines+markers') %>% 
-#   add_trace(y = ~q12_9.0__sum, name = 'not providing table service only', mode = 'lines+markers') %>% 
-#   add_trace(y = ~q12_10.0__sum, name = 'breaches of the rule of 6', mode = 'lines+markers') %>% 
-#   layout(title = "Cumulative Covid compliance checks",
-#          xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
-#          yaxis = list(title = "Number of checks/businesses",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = TRUE)
-# breachesChart
-# 
-# 
-# library(plotly)
-# 
-# trace_0 <- rnorm(100, mean = 5)
-# trace_1 <- rnorm(100, mean = 0)
-# trace_2 <- rnorm(100, mean = -5)
-# x <- c(1:100)
-# 
-# data <- data.frame(x, trace_0, trace_1, trace_2)
-# 
-# fig <- plot_ly(data, x = ~x)
-# fig <- fig %>% add_trace(y = ~trace_0, name = 'trace 0',mode = 'lines')
-# fig <- fig %>% add_trace(y = ~trace_1, name = 'trace 1', mode = 'lines+markers')
-# fig <- fig %>% add_trace(y = ~trace_2, name = 'trace 2', mode = 'markers')
-# 
-# 
-# #,type="scatter", mode="lines+markers"
-# # y = ~`requests for advice cum. sum`, type="scatter", mode="lines+markers", line=list(width = 1, color="#005674")) %>% 
-# #   layout(title = "Cumulative requests for advice",
-# #          xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
-# #          yaxis = list(title = "Number of requests",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = FALSE)
-# # requests_chrt=requests_chrt %>% add_trace(y=~`requests responded within agreed time`, name=`requests responded within agreed time`, mode='lines')
-#   requests_chrt
-# 
-# 
-# 
-# # Simple line chart of cumulative actions with time
-# actions_chrt= plot_ly(data = standard_charts, x = ~`week ending`, y = ~`actions by week end cum. sum`, type="scatter", mode="lines+markers", line=list(width = 1, color="#005674")) %>% 
-#   layout(title = "Cumulative Covid enforcement actions",
-#          xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
-#          yaxis = list(title = "Number of actions",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = FALSE)
-# actions_chrt
-# 
-# # Simple line chart of cumulative FTE with time
-# fte_chrt= plot_ly(data = standard_charts, x = ~`week ending`, y = ~`FTE by week end cum. sum`, type="scatter", mode="lines+markers", line=list(width = 1, color="#005674")) %>% 
-#   layout(title = "Cumulative Full-Time Equivalent (FTE) resource for Covid activities",
-#          xaxis = list(title = "Week ending",showticklabels = TRUE,showline=TRUE,showgrid=FALSE,rangemode='tozero', ticks='outside'),
-#          yaxis = list(title = "FTE",showticklabels = TRUE,showline=TRUE,tickformat= 's',showgrid=FALSE, rangemode='tozero',ticks='outside'), showlegend = FALSE)
-# fte_chrt
-# 
-# # Types of action ====
-# # ***************
-# action_charts=select(rptDataByWeek, actions$var) %>% 
-#   # calculate the cumulative sums for these
-#   mutate(across(-q24_, list(csum=cumsum)))
-# # Regex-replace variable with English names [see above]
-# names(action_charts) = stringi::stri_replace_all_regex(names(action_charts), actions$var, actions$varName, vectorize_all = FALSE)
-# names(action_charts) = stringi::stri_replace_all_regex(names(action_charts),'_csum',' cum. sum', vectorize_all = FALSE)
-# 
-# plots <- lapply(breachVars, function(i) {
-#   plot_ly(standard_charts, x = ~q24_, y = as.formula(paste0("~", var))) %>%
-#     add_lines(name = var)
-# })
+# create DF for the chart for XL output. In this case, easiest to create from the DF we used for the chart:
+otherActionsChartDF=otherActionsTidy %>% 
+  pivot_wider(., names_from = variable) %>% 
+  rename(!!(variable=udf_getVar(ChartVars[[3]])):=ChartVars[[1]]) # rename the x axis variable
 
-# use the vector of variable names $var and regular expression-replace with the English variable name
-# Do in 2 operations because we will still have '_csum' suffixes
-# names(standard_charts) = stringi::stri_replace_all_regex(names(standard_charts), charts$var, charts$varName, vectorize_all = FALSE)
-# names(standard_charts) = stringi::stri_replace_all_regex(names(standard_charts),'_csum',' cum. sum', vectorize_all = FALSE)
+# add to list for later XL creation
+covidFigs[[length(covidFigs)+1]] = list(otherActionsChart,otherActionsChartDF) # DF, variables in chart from DF
+names(covidFigs)[length(covidFigs)][[1]] = names(ChartVars)[1] # chart name
+
+## frequency histogram of number of weeks respondents responded ====
+# ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# NB This excludes those who never responded.
+# Bins run from lower bound < x <= upper bound
+hist=filter(data, q24_>= publishDataDate) %>% # apply start date
+  distinct(q24_,q2_) %>% # make sure there's no duplication of LA/wk combinations
+  group_by(q2_) %>% 
+  summarise(cnt=n()) # count them
+
+freqRespsChart=ggplot(data=hist, aes(x=cnt)) +
+  geom_histogram(breaks=seq(0, 30, by = 5),fill=colour2,colour=colour1)+
+  labs(title = "Number of respondents",
+       x = list(title = "\nNumber of weeks response received"), # hack to increase space above title
+       y = element_blank()) +
+  scale_x_continuous(breaks = seq(2.5, 30, by = 5), 
+                     labels=c('1 to 5','6 to 10',
+                              '11 to 15','16 to 20','21 to 25','26 to 30')) +
+  # scale_x_discrete(breaks=c("0.5","1","2"),
+  #                  labels=c("Dose 0.5", "Dose 1", "Dose 2"))
+  th  
+freqRespsChart
+
+# get the data out of the plot [frequencies] for inclusion in accompanying spreadsheet
+freqRespsChartDF=select(ggplot_build(freqRespsChart)$data[[1]],count,xmin,xmax) %>%  # this extracts data underpinning plot
+  select(xmin,xmax,count) %>% 
+  mutate(`number of weeks response received`=paste0(xmin+1,' to ',xmax, ' inclusive')) %>% 
+  select(., -c(xmin,xmax)) %>% 
+  rename(`count of respondents`=count) %>% 
+  select(2,1)
+
+# add to list for later XL creation
+covidFigs[[length(covidFigs)+1]] = list(freqRespsChart,freqRespsChartDF) # DF, variables in chart from DF
+names(covidFigs)[length(covidFigs)][[1]] = 'Frequency of responses by respondents' # chart name
+
+# Tables ====
+# ******
+## list of breaches table ====
+# for other, minor breaches
+# just rename the dataframe headers to something more Gov.uk compliant
+tableOfBreaches=rename(breachesTable,Breach=breach,Number=number, `Per cent`='%') %>% 
+  mutate(Number=as.numeric(Number)) %>% 
+  kable(format.args = list(big.mark = ","))
+
+# list of legislation in 2020 table A ====
+legA=tibble::tribble(~Month,~Day,~Legislation,
+                     "March",25,"The Coronavirus Act 2020",
+                     "",26,"The Health Protection (Coronavirus, Restrictions) (England) Regulations 2020)",
+                     "May",13,"The Health Protection (Coronavirus, Restrictions) (England) (Amendment No. 2) Regulations 2020",
+                     "June",1,"The Health Protection (Coronavirus, Restrictions) (England) (Amendment No. 3) Regulations 2020",
+                     "",13,"Parts of The Health Protections (Coronavirus, Restrictions) (England) (Amendment No.4) Regulations 2020",
+                     "",15,"The remainder of The Health Protections (Coronavirus, Restrictions) (England) (Amendment No.4) Regulations 2020",
+                     "July",4,"The Health Protection (Coronavirus, Restrictions) (No. 2) (England) Regulations 2020",
+                     "",4,"The Health Protection (Coronavirus, Restrictions) (Leicester) Regulations 2020",
+                     "",11,"Parts of The Health Protection (Coronavirus, Restrictions) (No. 2) (England) (Amendment) Regulations 2020",
+                     "",13,"The remainder of The Health Protection (Coronavirus, Restrictions) (No. 2) (England) (Amendment) Regulations 2020",
+                     "",18,"The Health Protection (Coronavirus, Restrictions) (England) (No.3) Regulations 2020",
+                     "August",3,"The Health Protection (Coronavirus, Restrictions) (Leicester) (No. 2) Regulations 2020",
+                     "",5,"The Health Protection (Coronavirus, Restrictions on Gatherings) (North of England) Regulations 2020",
+                     "September",14,"The Health Protection (Coronavirus, Restrictions) (No. 2) (England) (Amendment) (No. 4) Regulations 2020",
+                     "",18,"The Health Protection (Coronavirus, Collection of Contact Details etc and Related Requirements) Regulations 2020",
+                     "",24,"The Health Protection (Coronavirus, Restrictions) (No. 2) (England) (Amendment) (No. 5) Regulations 2020",
+                     "",28,"The Health Protection (Coronavirus, Restrictions) (Self-Isolation) (England) Regulations 2020",
+                     "",28,"The Health Protection (Coronavirus, Restrictions) (Obligations of Undertakings) (England) (Amendment) Regulations 2020",
+                     "October",14,"The Health Protection (Coronavirus, Local COVID-19 Alert Level) (Medium) (England) Regulations 2020 (SI. 2020 No. 1103)",
+                     "",14,"The Health Protection (Coronavirus, Local COVID-19 Alert Level) (High) (England) Regulations 2020, as amended1 (SI. 2020 No. 1104)",
+                     "",14,"The Health Protection (Coronavirus, Local COVID-19 Alert Level) (Very High) (England) Regulations 2020, as amended2 (SI. 2020 No. 1105)",
+                     "November",5,"The Health Protection (Coronavirus, Restrictions) (England) (No. 4) Regulations 2020 (SI. 2020: No.1200)",
+                     "December",2,"The Health Protection (Coronavirus, Restrictions) (Local Authority Enforcement Powers and Amendment) (England) Regulations 2020")
+
+legislationTableA=kable(legA)
+
+# list of legislation in 2020 table B ====
+
+legB=tibble::tribble(~colA,~colB,~colC,
+                     "January",5,"Amendments made to The Health Protection (Coronavirus, Restrictions) (All Tiers) (England) Regulations 2020 (SI 2020 No. 1374)",
+                     "March",8,"The Health Protection (Coronavirus) (Wearing of Face Coverings in a Relevant Place and Restrictions: All Tiers) (England) (Amendment) Regulations 2021 (SI 2021. No. 247)",
+                     "",29,"The Health Protection (Coronavirus, Restrictions) (Steps) (England) Regulations 2021",
+                     "April",12,"The Health Protection (Coronavirus, Restrictions) (Steps) (England) Regulations 2021 amended",
+                     "May",17,"The Health Protection (Coronavirus, Restrictions) (Steps and Other Provisions) (England) (Amendment) Regulations 2021 (SI 2021 No. 585)")
+
+legislationTableB=kable(legB, col.names = NULL)
+
+# need to turn the rownames into row titles for screen readers: this isn't working...
+# tableOfBreaches=c(tableOfBreaches[1:2],gsub('^\\|','\\|\\# ',tableOfBreaches[3:length(tableOfBreaches)]))
+# attr(tableOfBreaches, 'class') = 'knitr_kable'
+# attr(tableOfBreaches, 'format') = 'pipe'
+
+## breach types by date possible table ====
+# When did different breach types apply in the survey?
+# all breaches start with q12_. Exclude q12_6/q12_7 as these are "other" breaches--text entries
+ba=select(data,colnames(data[,grep("(q12_*)|q24_",colnames(data))])) %>% # get breaches and dates
+  select(., !starts_with(c("q12_6","q12_7"))) %>% # lose the "other" breaches
+  # unpivot; will get NAs for weeks where breach not apply:
+  pivot_longer(.,-q24_,names_to='col',values_to='count') %>% 
+  filter(., !is.na(count))  # remove the NA rows
+
+bt=ba %>% # re-use this DF for the next table [below]
+  # reformat the breach col so it sorts properly [10 is last]
+  mutate(col=as.numeric(gsub('q12_(.+)_[a-z]','\\1',col))) %>% 
+  distinct(., q24_,col) # get distinct combinations
+# NB we can't reformat the dates into something more readable here
+# because then they sort out of sequence in the next stage
+
+# crosstab the breaches with the weeks [weeks across top]
+breachesDates=table(bt[c('col','q24_')])
+attributes(breachesDates)$class = "matrix" # convert to matrix from table
+breachesDates=as.data.frame(breachesDates) %>% # convert matrix to DF.
+  # It has row names, but we want explicit entries their own column  
+  # [dplyr equivalent didn't work first time here]  
+  mutate(q=rownames(.)) %>% 
+  # reorder the cols so breach ID col is first  
+  select(q,everything())
+
+# condense this cross tab into a set of "from date x to date y" entries
+dates=colnames(breachesDates[,2:ncol(breachesDates)]) # get the list of dates
+# process the table a row at a time
+dvalid=vector() # initialise empty vector
+
+for( i in 1: nrow(breachesDates)){ # run through, a row at a time
+  r = rle(breachesDates[i,2:ncol(breachesDates)]) # first col has ID
+  indx=which(r$values[1,]==1) # get the indices of entries which==1
+  de=colnames(r$values[indx]) # get the dates; these are the last dates
+  dep=which(dates %in% de) # get positions of these dates in global dates list
+  dsp=dep-r$lengths[indx]+1 # calculate the start date positions
+  ds=dates[dsp] # get start dates using positions
+  ds=format(as.Date(ds), "%e %B %Y") # make dates more readable
+  de=format(as.Date(de), "%e %B %Y") # ditto
+  c=paste0(str_trim(ds),' to ',str_trim(de)) # collapse start and end date to single string
+  c=paste0(c,collapse='; ') # if there's more than one start/end pair for a breach type, concatenate
+  dvalid=c(dvalid,c) # add to the vector of dates when breach was valid
+}
+
+# hand code a more verbose description of each breach and its equivalent category in the report
+pubbt=tribble(
+  ~q,~Breach,~category,
+  '1','Premises failing to close that are required to remain closed by law (that is during national lockdown)','businesses failing to remain closed',
+  '1.1','Premises failing to close that are required to remain closed by law in all tiers (nightclubs, dancehalls & sexual entertainment venues) (that is when tiers were in force)','businesses failing to remain closed',
+  '1.2','Premises failing to comply with tier specific business closure rules','businesses failing to remain closed',
+  '2','Premises failing to take reasonable steps to ensure that workers who must be self-isolating are not working from outside their home','self-isolating workers working outside home',
+  '3','Premises failing to comply with a Local Authority direction (to close, or that places certain restrictions upon a premise, event, or public outdoor place) - apart from sector-wide direction given as part of national rules','failing to comply with a Local Authority direction',
+  '4','Premises not collecting customer information for NHS Test and Trace or not displaying a QR code','not collecting test and trace information',
+  '5','Breaches of COVID-Secure guidance in relation to legal duty of employers to protect staff and customers under Health and Safety legislation (for example, issues with face coverings, social distancing and/or signage)','not protecting staff and customers',
+  '8','Premises failing to adhere to restrictions on opening hours and last order times','exceeding opening hours rules',
+  '9','Premises failing to comply with requirement to provide table service only','not providing table service only',
+  '10','Premises failing to take reasonable steps to prevent bookings of over 6 (or one household in areas of local restrictions), table spacing, and mingling between groups on the premises','breaches of the rule of 6'
+)
+
+dvalid=as.data.frame(dvalid) %>% 
+  cbind(breachesDates$q) %>% 
+  rename('q'='breachesDates$q', `Dates valid`='dvalid') %>% 
+  inner_join(., pubbt) %>% 
+  rename(`Category in report`='category') %>% 
+  select(., Breach,`Dates valid`,`Category in report`)
+
+## action types by date possible table ====
+# which types of action were possible when?
+# extract the available actions in the same way as the breach types above
+actions=ba %>% 
+  # reformat the breach col so it sorts properly [10 is last]
+  mutate(col=gsub('q12_.+_([a-z])','\\1',col)) %>% 
+  distinct(., q24_,col) # get distinct combinations
+
+# crosstab the breaches with the weeks [weeks across top]
+actionsDates=table(actions[c('col','q24_')])
+attributes(actionsDates)$class = "matrix" # convert to matrix from table
+actionsDates=as.data.frame(actionsDates) %>% # convert matrix to DF.
+  # It has row names, but we want explicit entries their own column  
+  # [dplyr equivalent didn't work first time here]  
+  mutate(q=rownames(.)) %>% 
+  # reorder the cols so breach ID col is first  
+  select(q,everything())
+
+# condense this cross tab into a set of "from date x to date y" entries
+# process the table a row at a time
+avalid=vector() # initialise empty vector
+for( i in 1: nrow(actionsDates)){ # run through, a row at a time
+  r = rle(actionsDates[i,2:ncol(actionsDates)]) # first col has ID
+  indx=which(r$values[1,]==1) # get the indices of entries which==1
+  de=colnames(r$values[indx]) # get the dates; these are the last dates
+  dep=which(dates %in% de) # get positions of these dates in global dates list
+  dsp=dep-r$lengths[indx]+1 # calculate the start date positions
+  ds=dates[dsp] # get start dates using positions
+  ds=format(as.Date(ds), "%e %B %Y") # make dates more readable
+  de=format(as.Date(de), "%e %B %Y") # ditto
+  c=paste0(str_trim(ds),' to ',str_trim(de)) # collapse start and end date to single string
+  c=paste0(c,collapse='; ') # if there's more than one start/end pair for a breach type, concatenate
+  avalid=c(avalid,c) # add to the vector of dates when breach was valid
+}
+
+pubat=tribble(
+  ~q,~action,
+  'a','verbal advice',
+  'b','letter/email',
+  'c','direction notice issued',
+  'd','fixed penalty notice issued',
+  'e','prohibition notice issued',
+  'f','prosecutions initiated',
+  'g','Health and Safety At Work Act (HSAWA) improvement notice',
+  'h','coronavirus improvement notice',
+  'i','coronavirus immediate restriction notice',
+  'j','coronavirus restriction notice'
+)
+# actual table [rendered by kable in RMD]
+actionsDates=bind_cols(pubat,avalid) %>% 
+  rename(.,`dates valid`='...3') %>% 
+  select(action,`dates valid`) %>% 
+  group_by(`dates valid`) %>% 
+  summarise(action = paste(unique(action), collapse = ', '))
+
+
+

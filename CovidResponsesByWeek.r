@@ -27,7 +27,7 @@ source('CovidLoadPublicData.r') # NB calls other scripts
 # NB the direct link to the SP file doesn't always work: sometimes returns file doesn't exist errors
 #resultsDir="\\\\beisgov.sharepoint.com@SSL/DavWWWRoot/sites/beis2/169/Shared Documents/Analytical Team/COVID-19/Business Restrictions/Survey results/"
 # in that case, can use mapped OneDrive folder [but that has disadvantage that makes local copy of data AFAIK]:
-resultsDir="C:/Users/fsymons/OneDrive - Department for Business Energy and Industrial Strategy/Business Restrictions/Survey results/"
+resultsDir="C:/Users/fsymons/Downloads/Annexes/covid/"
 
 # XL title style object
 st1 = createStyle(fontName = 'Arial',textDecoration = "Bold",fontColour = "black",fontSize = 14) # black, bold, larger
@@ -36,7 +36,8 @@ st1 = createStyle(fontName = 'Arial',textDecoration = "Bold",fontColour = "black
 # *****************
 udf_geog_lookups() # load the geography lookups [from CovidLoadDataFunctions.r]
 
-respsOverSurveys=udf_join_geog(data) # join the geography on
+respsOverSurveys=udf_join_geog(data) %>% # join the geography on
+  distinct(q2_,q23_) # NB there are some duplications of LA/week. Unclear what these are. This removes them
 
 # Now create a crosstab "presence-absence" table of respondent by survey date.
 # Inc. marginal totals [counts here] using "addmargins"
