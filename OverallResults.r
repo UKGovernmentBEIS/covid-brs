@@ -184,7 +184,8 @@ finalLaCnt=nrow(distinct(select(filter(surveyRespondents, (Valid.from=='05/11/20
 # only include the data LAs have allowed us to share
 rptDataByWeek = filter(pubDataByWeek, q24_>= publishDataDate) %>% 
   # Compute no. of businesses which should be closed [all tiers+tier specific]
-  mutate(q12_1.1y2__sum=q12_1.1__sum+q12_1.2__sum) %>% 
+  # NB 4/10/21: naming of variable is misleading following redefinition after discovered q12_1.0__sum [=first week] left out
+  mutate(q12_1.1y2__sum=q12_1.0__sum+q12_1.1__sum+q12_1.2__sum) %>% 
   # For main chart, add up everything which is not 'business which should be closed' or 'not protecting staff and customers'
   mutate(other_breaches=select(., c('q12_2.0__sum','q12_3.0__sum','q12_4.0__sum','q12_6y7.0__sum','q12_8.0__sum','q12_9.0__sum','q12_10.0__sum')) 
          %>% rowSums())
@@ -311,7 +312,7 @@ standard_charts=standard_charts %>%
   mutate('q6__sum/q2__cnt'=`q6__sum`/`q2__cnt`)
 
 ChartVars=list()
-ChartVars=list('q24_','q6__sum/q2__cnt','Week ending','Average weekly complaints to survey respondents') # abstract the variables to a list we can reuse
+ChartVars=list('q24_','q6__sum/q2__cnt','Week ending','Average weekly complaints to each survey respondent') # abstract the variables to a list we can reuse
 names(ChartVars)[1]="Weekly (new) complaints about COVID-19 non-compliance" # this is the chart name for the XL
 
 complaintsWeeklyChart = ggplot2:: ggplot(data = standard_charts,aes(x = !!(variable=udf_getVar(ChartVars[[1]])), y = !!(variable=udf_getVar(ChartVars[[2]])))) +
