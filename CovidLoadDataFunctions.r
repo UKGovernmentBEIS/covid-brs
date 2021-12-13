@@ -32,7 +32,7 @@ udf_waitifnot = function(cond,msg) {
 # Get the fields in the survey and their types [first col has "dataset ID", last has type=char/no.]
 # NB The reading process only includes XL populated lines. Blank lines separating content in the XL are ignored
 udf_survey_fields=function(filesDir,filename){
-  surveyFields=readWorkbook(paste0(filesDir,filename),namedRegion='fieldDef')
+  surveyFields=readWorkbook(paste0(filesDir,filename),sheet='Intro',namedRegion='fieldDef')
   udf_waitifnot(is.list(surveyFields),paste0("Can't read: ",filesDir,filename,": is it open?"))
   assign('surveyFields',surveyFields,envir=.GlobalEnv)
   #View(surveyFields)
@@ -60,7 +60,7 @@ udf_survey_fields=function(filesDir,filename){
 # I.e. lut goes from >311 => 311 => 143 areas
 # lut has GOR names in it [be aware that 2 survey respondents overlap GORs: assigned to one GOR only here.]
 udf_geog_lookups=function(){
-  surveyLADs=readWorkbook(paste0(filesDir,"CovidSurveyGeography.xlsx"),namedRegion='lad_to_area')
+  surveyLADs=readWorkbook(paste0(filesDir,"CovidSurveyGeography.xlsx"),sheet='geography',namedRegion='lad_to_area')
   udf_waitifnot(is.list(surveyLADs),paste0("Can't read: ",filesDir,"CovidSurveyGeography.xlsx",": is it open?"))
   assign('surveyLADs',surveyLADs,envir=.GlobalEnv)
   # create table at respondent level [=311; each respondent name appears once]. Add resp. ID and non-overlapping area ID [=143 areas],

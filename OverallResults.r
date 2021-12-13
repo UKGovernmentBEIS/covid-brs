@@ -14,9 +14,15 @@ rm(list=ls()) # remove anything in memory
 # Working directory ====
 # *****************
 # Assumes we're using R Studio
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+wd=dirname(rstudioapi::getActiveDocumentContext()$path)
+
+# Some problems with this original statement. That may be due to unsaved scripts having a path of ''
+# following attempts to avoid this
+# setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+if(wd!=''){setwd(wd)}
+
 # Use the following if not:
-# setwd(getSrcDirectory()[1])
+ # setwd(getSrcDirectory()[1])
 
 # aggregate data to week across regions [i.e. for England]
 # run this first because it removes anything in memory
@@ -34,8 +40,8 @@ source("Captioner package.R") # This contains the "meat" of the captioner packag
 # Constants for just this script ====
 # ******************************
 # NB other constants are in CovidConstants.r
-resultsDir=paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/") # For convenience, use the scripts directory
-# resultsDir="C:/Users/fsymons/Downloads/Annexes/" # or uncomment and change this...
+#resultsDir=paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/") # For convenience, use the scripts directory
+ resultsDir="C:/Users/fsymons/Downloads/Annexes/" # or uncomment and change this...
 
 # Date from which LAs have said we can share (=publish) the survey data
 publishDataDate="2020-11-23"
@@ -393,6 +399,17 @@ fteWeeklyChart= ggplot2::ggplot(data = standard_charts, aes(x = `q24_`, y = `q9_
   scale_x_date(date_labels="%b %Y",date_breaks  ="1 month")
 fteWeeklyChart
 
+## Total weekly full-time equivalent resource chart ====
+# NB not included in the report
+fteTotWeeklyChart= ggplot2::ggplot(data = standard_charts, aes(x = `q24_`, y = `q9__.__sum`)) + 
+  geom_line(color = colour2 ) + th + 
+  labs(title = "Total weekly full-time equivalent resource by survey respondents",
+       x = list(title = "Week ending"),
+       y = element_blank()) +
+  #scale_y_continuous(limits = c(0,NA)) +
+  scale_x_date(date_labels="%b %Y",date_breaks  ="1 month")
+fteTotWeeklyChart
+
 ## cumulative major types of breaches chart ====
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # Determine breaches to plot. In order = all breaches/actions, all other breaches, 
@@ -410,7 +427,7 @@ names(ChartVars)[1]="Cumulative breaches of COVID-19 regulations for major breac
 breachesTidy = standard_charts %>%
   select(`q24_`,`q12__.__sum_csum`,`other_breaches_csum`,`q12_1.1y2__sum_csum`,`q12_5.0__sum_csum`) %>%
   gather(key = "variable", value = "value", -`q24_`)
-str(breachesTidy$variable)
+
 # chart
 breachesChart = ggplot2::ggplot(data = breachesTidy,aes(x = `q24_`, y = `value`))+ 
   geom_line(aes(color = `variable`)) + 
@@ -685,7 +702,7 @@ pubbt=tribble(
   '2','Premises failing to take reasonable steps to ensure that workers who must be self-isolating are not working from outside their home','self-isolating workers working outside home',
   '3','Premises failing to comply with a Local Authority direction (to close, or that places certain restrictions upon a premise, event, or public outdoor place) - apart from sector-wide direction given as part of national rules','failing to comply with a Local Authority direction',
   '4','Premises not collecting customer information for NHS Test and Trace or not displaying a QR code','not collecting test and trace information',
-  '5','Breaches of COVID-Secure guidance in relation to legal duty of employers to protect staff and customers under Health and Safety legislation (for example, issues with face coverings, social distancing and/or signage)','not protecting staff and customers',
+  '5','Breaches of COVID-19-secure guidance in relation to legal duty of employers to protect staff and customers under Health and Safety legislation (for example, issues with face coverings, social distancing and/or signage)','not protecting staff and customers',
   '8','Premises failing to adhere to restrictions on opening hours and last order times','exceeding opening hours rules',
   '9','Premises failing to comply with requirement to provide table service only','not providing table service only',
   '10','Premises failing to take reasonable steps to prevent bookings of over 6 (or one household in areas of local restrictions), table spacing, and mingling between groups on the premises','breaches of the rule of 6'
